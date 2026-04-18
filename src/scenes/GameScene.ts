@@ -83,6 +83,24 @@ export class GameScene extends Phaser.Scene {
   private uiBombQueued = false;
   private mobileUiDestroyables: Phaser.GameObjects.GameObject[] = [];
 
+  /**
+   * Spacebar auto-fire: track with keydown/keyup so holding fire stays steady
+   * (browser / Phaser `Key.isDown` can drop briefly when Space is also used for page scroll).
+   */
+  private spaceFireHeld = false;
+
+  private readonly onSpaceFireDown = (): void => {
+    this.spaceFireHeld = true;
+  };
+
+  private readonly onSpaceFireUp = (): void => {
+    this.spaceFireHeld = false;
+  };
+
+  private readonly onGameBlurResetSpace = (): void => {
+    this.spaceFireHeld = false;
+  };
+
   private readonly onPointerDownGame = (pointer: Phaser.Input.Pointer): void => {
     this.game.canvas?.focus();
     void ensureAudioUnlocked();
@@ -167,6 +185,11 @@ export class GameScene extends Phaser.Scene {
     this.keyP = kb.addKey(Phaser.Input.Keyboard.KeyCodes.P);
     this.keyV = kb.addKey(Phaser.Input.Keyboard.KeyCodes.V);
 
+    kb.addCapture('SPACE,W,A,S,D,UP,DOWN,LEFT,RIGHT,X,B,P,V,R,G,M,T');
+    kb.on('keydown-SPACE', this.onSpaceFireDown);
+    kb.on('keyup-SPACE', this.onSpaceFireUp);
+    this.game.events.on('blur', this.onGameBlurResetSpace);
+
     kb.once('keydown', () => {
       this.game.canvas?.focus();
       void ensureAudioUnlocked();
@@ -239,6 +262,11 @@ export class GameScene extends Phaser.Scene {
       kb.off('keydown-G');
       kb.off('keydown-M');
       kb.off('keydown-T');
+      kb.off('keydown-SPACE', this.onSpaceFireDown);
+      kb.off('keyup-SPACE', this.onSpaceFireUp);
+      this.game.events.off('blur', this.onGameBlurResetSpace);
+      kb.removeCapture('SPACE,W,A,S,D,UP,DOWN,LEFT,RIGHT,X,B,P,V,R,G,M,T');
+      this.spaceFireHeld = false;
       if (this.paused) {
         this.physics.resume();
         this.tweens.resumeAll();
@@ -805,7 +833,7 @@ export class GameScene extends Phaser.Scene {
 
     this.player?.refreshBlink(time);
 
-    const wantFire = !!this.keySpace?.isDown || touchSteering;
+    const wantFire = this.spaceFireHeld || touchSteering || !!this.keySpace?.isDown;
     if (wantFire && time - this.lastFireTime >= primary.cooldownMs) {
       this.firePrimary(primary);
       this.lastFireTime = time;
