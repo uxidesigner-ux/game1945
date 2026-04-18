@@ -65,6 +65,8 @@ export class GameScene extends Phaser.Scene {
   private paused = false;
   private pauseBg?: Phaser.GameObjects.Rectangle;
   private pauseTxt?: Phaser.GameObjects.Text;
+  private pauseResumeBg?: Phaser.GameObjects.Rectangle;
+  private pauseResumeLbl?: Phaser.GameObjects.Text;
   private keyP?: Phaser.Input.Keyboard.Key;
   private keyV?: Phaser.Input.Keyboard.Key;
   private diffTune = difficultyTuning(runState.difficulty);
@@ -75,6 +77,7 @@ export class GameScene extends Phaser.Scene {
   private touchTargetY = 0;
   private bombUiBounds = new Phaser.Geom.Rectangle(0, 0, 0, 0);
   private chargeUiBounds = new Phaser.Geom.Rectangle(0, 0, 0, 0);
+  private pauseUiBounds = new Phaser.Geom.Rectangle(0, 0, 0, 0);
   private uiChargeHeld = false;
   private uiBombQueued = false;
   private mobileUiDestroyables: Phaser.GameObjects.GameObject[] = [];
@@ -195,7 +198,7 @@ export class GameScene extends Phaser.Scene {
       .text(
         width / 2,
         height * 0.1,
-        'Hostiles & boss — move · SPACE · X charge · B bomb · P pause · V SFX mute · touch: drag + auto fire',
+        'Hostiles & boss — move · SPACE · X charge · B bomb · P / PAUSE btn · V SFX · touch: drag + auto fire',
         {
           fontFamily: 'system-ui, sans-serif',
           fontSize: '15px',
@@ -255,7 +258,8 @@ export class GameScene extends Phaser.Scene {
   private pointHitsMobileChrome(wx: number, wy: number): boolean {
     return (
       Phaser.Geom.Rectangle.Contains(this.bombUiBounds, wx, wy) ||
-      Phaser.Geom.Rectangle.Contains(this.chargeUiBounds, wx, wy)
+      Phaser.Geom.Rectangle.Contains(this.chargeUiBounds, wx, wy) ||
+      Phaser.Geom.Rectangle.Contains(this.pauseUiBounds, wx, wy)
     );
   }
 
@@ -345,6 +349,36 @@ export class GameScene extends Phaser.Scene {
       void ensureAudioUnlocked();
       this.uiBombQueued = true;
     });
+
+    const pauseW = 100;
+    const pauseH = 40;
+    const pauseX = width - 16 - pauseW / 2;
+    const pauseY = 58;
+    this.pauseUiBounds.setTo(pauseX - pauseW / 2, pauseY - pauseH / 2, pauseW, pauseH);
+
+    const pauseBg = this.add
+      .rectangle(pauseX, pauseY, pauseW, pauseH, 0x1a2838, uiAlpha)
+      .setStrokeStyle(2, 0x5c7a92, 0.92)
+      .setDepth(depth)
+      .setInteractive({ useHandCursor: true });
+    const pauseLbl = this.add
+      .text(pauseX, pauseY, 'PAUSE', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '14px',
+        color: '#cfe9ff',
+      })
+      .setOrigin(0.5)
+      .setDepth(depth + 1);
+
+    this.mobileUiDestroyables.push(pauseBg, pauseLbl);
+
+    const togglePause = (): void => {
+      void ensureAudioUnlocked();
+      this.setPaused(!this.paused);
+    };
+    pauseBg.on('pointerdown', togglePause);
+    pauseLbl.setInteractive({ useHandCursor: true });
+    pauseLbl.on('pointerdown', togglePause);
   }
 
   private teardownBoss(): void {
@@ -526,7 +560,7 @@ export class GameScene extends Phaser.Scene {
       .setDepth(400)
       .setInteractive();
     this.pauseTxt = this.add
-      .text(w / 2, h / 2, 'PAUSED\n\nP — resume', {
+      .text(w / 2, h * 0.44, 'PAUSED\n\nP — resume · tap RESUME', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '28px',
         color: '#e8f4ff',
@@ -534,9 +568,36 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(401);
+
+    const resumeY = h * 0.62;
+    this.pauseResumeBg = this.add
+      .rectangle(w / 2, resumeY, 248, 56, 0x2a4a68, 0.96)
+      .setStrokeStyle(2, 0x8ec8ff, 0.85)
+      .setDepth(404)
+      .setInteractive({ useHandCursor: true });
+    this.pauseResumeLbl = this.add
+      .text(w / 2, resumeY, 'RESUME', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '24px',
+        color: '#e8f4ff',
+      })
+      .setOrigin(0.5)
+      .setDepth(405);
+
+    const resume = (): void => {
+      void ensureAudioUnlocked();
+      this.setPaused(false);
+    };
+    this.pauseResumeBg.on('pointerdown', resume);
+    this.pauseResumeLbl.setInteractive({ useHandCursor: true });
+    this.pauseResumeLbl.on('pointerdown', resume);
   }
 
   private hidePauseOverlay(): void {
+    this.pauseResumeBg?.destroy();
+    this.pauseResumeLbl?.destroy();
+    this.pauseResumeBg = undefined;
+    this.pauseResumeLbl = undefined;
     this.pauseBg?.destroy();
     this.pauseTxt?.destroy();
     this.pauseBg = undefined;

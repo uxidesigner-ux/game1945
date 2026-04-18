@@ -24,12 +24,12 @@ npm run preview  # serve dist/
 | Fire | Space |
 | Charge shot | Hold / release X |
 | Bomb | B |
-| Pause | P |
+| Pause | P or on-screen **PAUSE** (top-right) |
 | SFX mute | V (preference saved in this browser) |
 | Title — difficulty | H toggles Normal / Hard (saved locally; faster spawns & enemy fire) |
 | Ship select | 1 / 2 or click craft |
 
-**Touch (in-game):** drag a finger on the playfield to move (auto-fire while dragging). Lower corners: hold **CHARGE**, tap **BOMB**. Touch steering uses the first finger only until you lift it, so you can bomb with another finger. Title: tap anywhere to continue (same as ENTER).
+**Touch (in-game):** drag a finger on the playfield to move (auto-fire while dragging). Top-right **PAUSE**; when paused, tap **RESUME** (or press P). Lower corners: hold **CHARGE**, tap **BOMB**. Touch steering uses the first finger only until you lift it, so you can bomb with another finger. Title: tap anywhere to continue (same as ENTER).
 
 **Result:** Enter — next stage · T — title. **Game over:** Enter / T — title. **Demo clear:** Enter — title · R — ship select.
 
