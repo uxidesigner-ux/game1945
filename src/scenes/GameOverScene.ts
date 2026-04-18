@@ -18,7 +18,7 @@ export class GameOverScene extends Phaser.Scene {
 
     const prevBest = loadHighScore();
     recordHighScoreIfBest(runState.score);
-    submitRunToLeaderboard(runState.score);
+    submitRunToLeaderboard(runState.score, runState.difficulty);
     const newRecord = runState.score > prevBest;
 
     void SFX.gameOver();

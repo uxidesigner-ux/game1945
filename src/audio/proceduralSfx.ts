@@ -167,4 +167,16 @@ export const SFX = {
       delay += 92;
     }
   },
+
+  async bossDefeated(): Promise<void> {
+    await ensureAudioUnlocked();
+    if (sfxMuted) return;
+    tone(320, 0.09, 0.052, 'square');
+    window.setTimeout(() => {
+      if (!sfxMuted) tone(440, 0.1, 0.05);
+    }, 80);
+    window.setTimeout(() => {
+      if (!sfxMuted) tone(550, 0.16, 0.056, 'triangle');
+    }, 165);
+  },
 };

@@ -1,7 +1,11 @@
 import Phaser from 'phaser';
 import { ensureAudioUnlocked } from '../audio/proceduralSfx';
 import { loadHighScore } from '../core/highScore';
-import { formatLeaderboardShortDate, loadLeaderboard } from '../core/leaderboard';
+import {
+  formatLeaderboardDifficultyLine,
+  formatLeaderboardShortDate,
+  loadLeaderboard,
+} from '../core/leaderboard';
 import { runState } from '../core/RunState';
 import {
   difficultyDisplay,
@@ -60,7 +64,7 @@ export class TitleScene extends Phaser.Scene {
         : board
             .map(
               (e, i) =>
-                `${i + 1}. ${e.score.toLocaleString()} · ${formatLeaderboardShortDate(e.at)}`,
+                `${i + 1}. ${e.score.toLocaleString()} · ${formatLeaderboardDifficultyLine(e)} · ${formatLeaderboardShortDate(e.at)}`,
             )
             .join('\n');
     this.add

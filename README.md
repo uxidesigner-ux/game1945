@@ -16,6 +16,8 @@ npm run build    # production bundle → dist/
 npm run preview  # serve dist/
 ```
 
+**GitHub Pages** (project site `https://<user>.github.io/game1945/`): run `npm run build:gh-pages` so asset paths use base `/game1945/`. If the repo name differs, change `VITE_BASE` in `package.json` or run `VITE_BASE=/repo/ vite build` once after `tsc --noEmit`.
+
 ## Controls
 
 | Key | Action |
@@ -31,7 +33,7 @@ npm run preview  # serve dist/
 
 **High score:** best run score is saved in `localStorage` for this browser and shown on the title screen. Beating it shows **New best score!** on stage clear, game over, or demo complete.
 
-**Leaderboard:** top **5** scores (with date/time) from **game over** and **demo complete** runs only — listed on the title screen under “TOP RUNS”.
+**Leaderboard:** top **5** scores with **difficulty** and date/time from **game over** and **demo complete** only — title screen “TOP RUNS”. Older saves without difficulty migrate as Normal.
 
 **Touch (in-game):** drag a finger on the playfield to move (auto-fire while dragging). Top-right **PAUSE**; when paused, tap **RESUME** (or press P). Lower corners: hold **CHARGE**, tap **BOMB**. Touch steering uses the first finger only until you lift it, so you can bomb with another finger. Title: tap anywhere to continue (same as ENTER).
 

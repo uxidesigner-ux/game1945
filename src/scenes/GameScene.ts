@@ -457,6 +457,7 @@ export class GameScene extends Phaser.Scene {
     const y = this.bossSprite?.y ?? 0;
     runState.score += this.bossDef.scoreReward;
     this.rollPickupsOnKill(x, y);
+    void SFX.bossDefeated();
     this.teardownBoss();
     this.scene.start(SceneKeys.Result);
   }
