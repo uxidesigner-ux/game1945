@@ -12,6 +12,8 @@ export class RunState {
   selectedShipId: ShipId = 'falcon';
   /** 1-based stage index for the MVP flow. */
   currentStageIndex = 1;
+  /** Ms since current GameScene started (Energy Core time bonus). */
+  stageElapsedMs = 0;
 
   resetForNewRun(shipId: ShipId): void {
     this.lives = 3;
@@ -21,6 +23,7 @@ export class RunState {
     this.powerLevel = 0;
     this.selectedShipId = shipId;
     this.currentStageIndex = 1;
+    this.stageElapsedMs = 0;
   }
 }
 

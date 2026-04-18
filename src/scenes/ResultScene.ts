@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { formatTimeMs } from '../core/formatTime';
 import { runState } from '../core/RunState';
 import { SceneKeys } from './sceneKeys';
 
@@ -19,7 +20,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.48, `Score ${runState.score.toLocaleString()}`, {
+      .text(width / 2, height * 0.46, `Score ${runState.score.toLocaleString()}`, {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '22px',
         color: '#e8f4ff',
@@ -27,7 +28,15 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.6, 'ENTER — next stage stub · T — title', {
+      .text(width / 2, height * 0.53, `Stage time ${formatTimeMs(runState.stageElapsedMs)}`, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '18px',
+        color: '#8fb8d9',
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(width / 2, height * 0.62, 'ENTER — next stage · T — title', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '18px',
         color: '#7aa6c8',

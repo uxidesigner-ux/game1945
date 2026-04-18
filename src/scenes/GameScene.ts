@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { TextureKeys } from '../core/textureKeys';
 import { runState } from '../core/RunState';
+import { enemyGunnerByType, waveEnemySpawnByType } from '../data/enemies';
 import { bossPhaseIndex, getBossDefinition, type BossDefinition } from '../data/bosses';
 import { PickupKind, PICKUP_CHANCE_ENERGY_CORE, PICKUP_CHANCE_POWER } from '../data/pickups';
-import { SCORE_ENERGY_CORE, SCORE_GRUNT_KILL } from '../data/scoring';
+import { energyCoreScoreAt, SCORE_GRUNT_KILL } from '../data/scoring';
 import { getShipCombat } from '../data/ships/combatStats';
 import type { PrimaryPattern } from '../data/ships/combatStats';
 import { resolvePrimaryStats, type ResolvedPrimary } from '../data/ships/powerLevel';
@@ -51,6 +52,11 @@ export class GameScene extends Phaser.Scene {
   private bossFirePhase: number | null = null;
   /** Ensures a single boss spawn per GameScene after the wave script finishes. */
   private bossRoundScheduled = false;
+
+  private paused = false;
+  private pauseBg?: Phaser.GameObjects.Rectangle;
+  private pauseTxt?: Phaser.GameObjects.Text;
+  private keyP?: Phaser.Input.Keyboard.Key;
 
   constructor() {
     super(SceneKeys.Game);
@@ -102,6 +108,7 @@ export class GameScene extends Phaser.Scene {
     this.keySpace = kb.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.keyX = kb.addKey(Phaser.Input.Keyboard.KeyCodes.X);
     this.keyB = kb.addKey(Phaser.Input.Keyboard.KeyCodes.B);
+    this.keyP = kb.addKey(Phaser.Input.Keyboard.KeyCodes.P);
 
     this.physics.add.overlap(
       this.playerBullets,
@@ -126,12 +133,13 @@ export class GameScene extends Phaser.Scene {
 
     this.hud = new HUD(this);
     this.hud.sync(runState);
+    runState.stageElapsedMs = 0;
 
     this.waveHint = this.add
       .text(
         width / 2,
         height * 0.1,
-        'Clear hostiles & boss — move · SPACE · X charge · B bomb (clears foe shots)',
+        'Hostiles & boss — move · SPACE · X charge · B bomb · P pause',
         {
           fontFamily: 'system-ui, sans-serif',
           fontSize: '15px',
@@ -153,6 +161,11 @@ export class GameScene extends Phaser.Scene {
       kb.off('keydown-G');
       kb.off('keydown-M');
       kb.off('keydown-T');
+      if (this.paused) {
+        this.physics.resume();
+        this.tweens.resumeAll();
+      }
+      this.hidePauseOverlay();
       this.playerBullets.clear(true, true);
       this.enemyBullets.clear(true, true);
       this.enemies.clear(true, true);
@@ -168,6 +181,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private teardownBoss(): void {
+    this.hud?.setBossBar(false, '', 0, 1, 0);
     this.bossPbOverlap?.destroy();
     this.bossPlOverlap?.destroy();
     this.bossPbOverlap = undefined;
@@ -259,8 +273,12 @@ export class GameScene extends Phaser.Scene {
 
     const ph = bossPhaseIndex(this.bossHp, def.maxHp);
     if (this.bossFirePhase !== ph) {
+      const hadPhase = this.bossFirePhase !== null;
       this.bossFirePhase = ph;
       this.bossNextBurst = time + 450;
+      if (hadPhase) {
+        this.playBossPhaseShift(ph);
+      }
     }
 
     const aimedMs = def.aimedIntervalMs[ph];
@@ -316,8 +334,58 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private playBossPhaseShift(phase: number): void {
+    void phase;
+    this.cameras.main.flash(160, 255, 210, 140);
+    const b = this.bossSprite;
+    if (b?.active) {
+      b.setTint(0xffc4a8);
+      this.time.delayedCall(140, () => b.active && b.clearTint());
+    }
+  }
+
   private clearEnemyBullets(): void {
     this.enemyBullets.clear(true, true);
+  }
+
+  private showPauseOverlay(): void {
+    if (this.pauseBg) return;
+    const w = this.scale.width;
+    const h = this.scale.height;
+    this.pauseBg = this.add
+      .rectangle(w / 2, h / 2, w, h, 0x05080c, 0.52)
+      .setDepth(400)
+      .setInteractive();
+    this.pauseTxt = this.add
+      .text(w / 2, h / 2, 'PAUSED\n\nP — resume', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '28px',
+        color: '#e8f4ff',
+        align: 'center',
+      })
+      .setOrigin(0.5)
+      .setDepth(401);
+  }
+
+  private hidePauseOverlay(): void {
+    this.pauseBg?.destroy();
+    this.pauseTxt?.destroy();
+    this.pauseBg = undefined;
+    this.pauseTxt = undefined;
+  }
+
+  private setPaused(p: boolean): void {
+    if (p === this.paused) return;
+    this.paused = p;
+    if (p) {
+      this.physics.pause();
+      this.tweens.pauseAll();
+      this.showPauseOverlay();
+    } else {
+      this.physics.resume();
+      this.tweens.resumeAll();
+      this.hidePauseOverlay();
+    }
   }
 
   private rollPickupsOnKill(x: number, y: number): void {
@@ -351,7 +419,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (kind === PickupKind.EnergyCore) {
-      runState.score += SCORE_ENERGY_CORE;
+      runState.score += energyCoreScoreAt(runState.stageElapsedMs);
     }
   }
 
@@ -418,7 +486,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_t: number, dt: number): void {
+    if (this.keyP && Phaser.Input.Keyboard.JustDown(this.keyP)) {
+      this.setPaused(!this.paused);
+    }
+    if (this.paused) {
+      this.hud?.sync(runState);
+      if (this.bossSprite?.active && this.bossDef) {
+        const ph = bossPhaseIndex(this.bossHp, this.bossDef.maxHp);
+        this.hud?.setBossBar(true, this.bossDef.displayName, this.bossHp, this.bossDef.maxHp, ph);
+      } else {
+        this.hud?.setBossBar(false, '', 0, 1, 0);
+      }
+      return;
+    }
+
     const time = this.time.now;
+    runState.stageElapsedMs += dt;
     const ds = dt / 1000;
     const stats = getShipCombat(runState.selectedShipId);
     const primary = resolvePrimaryStats(stats, runState.selectedShipId, runState.powerLevel);
@@ -476,6 +559,13 @@ export class GameScene extends Phaser.Scene {
     this.cullPickups();
 
     this.hud?.sync(runState);
+
+    if (this.bossSprite?.active && this.bossDef) {
+      const ph = bossPhaseIndex(this.bossHp, this.bossDef.maxHp);
+      this.hud?.setBossBar(true, this.bossDef.displayName, this.bossHp, this.bossDef.maxHp, ph);
+    } else {
+      this.hud?.setBossBar(false, '', 0, 1, 0);
+    }
   }
 
   private firePrimary(primary: ResolvedPrimary): void {
@@ -597,27 +687,17 @@ export class GameScene extends Phaser.Scene {
     for (const ch of this.enemies.getChildren()) {
       const e = ch as Phaser.Physics.Arcade.Sprite;
       if (!e.active) continue;
-      const role = (e.getData('enemyRole') as string) ?? 'grunt';
+      const roleKey = (e.getData('enemyRole') as WaveEnemyType) ?? 'grunt';
+      const g = enemyGunnerByType[roleKey] ?? enemyGunnerByType.grunt;
       let next = e.getData('nextEnemyShot') as number | undefined;
       if (next === undefined) {
-        const initial =
-          role === 'turret'
-            ? time + Phaser.Math.Between(500, 900)
-            : time + Phaser.Math.Between(900, 1600);
-        e.setData('nextEnemyShot', initial);
+        e.setData('nextEnemyShot', time + Phaser.Math.Between(g.firstDelayMin, g.firstDelayMax));
         continue;
       }
       if (time < next) continue;
       const ang = Phaser.Math.Angle.Between(e.x, e.y + 12, px, py);
-      const spd = role === 'raider' ? 252 : role === 'turret' ? 205 : 230;
-      this.spawnEnemyBullet(e.x, e.y + 14, ang, spd);
-      const again =
-        role === 'turret'
-          ? time + Phaser.Math.Between(1500, 2200)
-          : role === 'raider'
-            ? time + Phaser.Math.Between(2200, 3400)
-            : time + Phaser.Math.Between(2600, 4000);
-      e.setData('nextEnemyShot', again);
+      this.spawnEnemyBullet(e.x, e.y + 14, ang, g.shotSpeed);
+      e.setData('nextEnemyShot', time + Phaser.Math.Between(g.repeatMin, g.repeatMax));
     }
   }
 
@@ -696,38 +776,18 @@ export class GameScene extends Phaser.Scene {
     const margin = 48;
     const x = Phaser.Math.Between(margin, width - margin);
     const y = -46;
-
-    if (t === 'grunt') {
-      const e = this.enemies.create(x, y, TextureKeys.Grunt) as Phaser.Physics.Arcade.Sprite;
-      this.finalizeSpawnedEnemy(e, 'grunt', 72, 108, 20, 6, 6);
-      return;
+    const prof = waveEnemySpawnByType[t];
+    const e = this.enemies.create(x, y, prof.textureKey) as Phaser.Physics.Arcade.Sprite;
+    if (t === 'raider') {
+      e.setData('wobble', Phaser.Math.FloatBetween(0, Math.PI * 2));
     }
-    if (t === 'turret') {
-      const e = this.enemies.create(x, y, TextureKeys.EnemyTurret) as Phaser.Physics.Arcade.Sprite;
-      this.finalizeSpawnedEnemy(e, 'turret', 30, 44, 26, 3, 10);
-      return;
-    }
-    const e = this.enemies.create(x, y, TextureKeys.EnemyRaider) as Phaser.Physics.Arcade.Sprite;
-    e.setData('wobble', Phaser.Math.FloatBetween(0, Math.PI * 2));
-    this.finalizeSpawnedEnemy(e, 'raider', 85, 102, 18, 7, 5);
-  }
-
-  private finalizeSpawnedEnemy(
-    e: Phaser.Physics.Arcade.Sprite,
-    role: string,
-    vyMin: number,
-    vyMax: number,
-    hit: number,
-    offX: number,
-    offY: number,
-  ): void {
-    e.setDepth(41);
-    e.setData('enemyRole', role);
-    e.setVelocity(0, Phaser.Math.Between(vyMin, vyMax));
+    e.setDepth(prof.depth);
+    e.setData('enemyRole', t);
+    e.setVelocity(0, Phaser.Math.Between(prof.vyMin, prof.vyMax));
     const body = e.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
-    body.setSize(hit, hit);
-    body.setOffset(offX, offY);
+    body.setSize(prof.hitSize, prof.hitSize);
+    body.setOffset(prof.offsetX, prof.offsetY);
     this.enemiesAlive += 1;
   }
 
