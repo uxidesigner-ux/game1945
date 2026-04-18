@@ -1,6 +1,6 @@
 # VORTEX STRIKERS
 
-Desktop vertical shooter (Phaser 3 + Vite + TypeScript). Fixed logical size **720×1280**, scaled with `FIT`.
+Desktop / mobile-friendly vertical shooter (Phaser 3 + Vite + TypeScript). Fixed logical size **720×1280**, scaled with `FIT`.
 
 ## Run locally
 
@@ -28,6 +28,8 @@ npm run preview  # serve dist/
 | SFX mute | V (preference saved in this browser) |
 | Title — difficulty | H toggles Normal / Hard (saved locally; faster spawns & enemy fire) |
 | Ship select | 1 / 2 or click craft |
+
+**Touch (in-game):** drag a finger on the playfield to move (auto-fire while dragging). Lower corners: hold **CHARGE**, tap **BOMB**. Touch steering uses the first finger only until you lift it, so you can bomb with another finger. Title: tap anywhere to continue (same as ENTER).
 
 **Result:** Enter — next stage · T — title. **Game over:** Enter / T — title. **Demo clear:** Enter — title · R — ship select.
 

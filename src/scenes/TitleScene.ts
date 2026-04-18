@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { ensureAudioUnlocked } from '../audio/proceduralSfx';
 import { runState } from '../core/RunState';
 import {
   difficultyDisplay,
@@ -44,7 +45,7 @@ export class TitleScene extends Phaser.Scene {
 
     const refreshHint = (): void => {
       const d = difficultyDisplay[runState.difficulty];
-      hint.setText(`Press ENTER — Ship select\nH — Difficulty: ${d}`);
+      hint.setText(`ENTER or tap — Ship select\nH — Difficulty: ${d}`);
     };
     refreshHint();
 
@@ -67,8 +68,16 @@ export class TitleScene extends Phaser.Scene {
       kb?.off('keydown-H', onDifficulty);
     });
 
-    kb?.once('keydown-ENTER', () => {
+    const goShipSelect = (): void => {
       this.scene.start(SceneKeys.ShipSelect);
+    };
+    kb?.once('keydown-ENTER', () => {
+      void ensureAudioUnlocked();
+      goShipSelect();
+    });
+    this.input.once('pointerdown', () => {
+      void ensureAudioUnlocked();
+      goShipSelect();
     });
   }
 }

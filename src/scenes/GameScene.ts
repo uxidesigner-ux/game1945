@@ -40,7 +40,7 @@ export class GameScene extends Phaser.Scene {
   private keySpace?: Phaser.Input.Keyboard.Key;
   private keyX?: Phaser.Input.Keyboard.Key;
   private keyB?: Phaser.Input.Keyboard.Key;
-  private keyXWasDown = false;
+  private chargeWasHeld = false;
   private wasd!: {
     W: Phaser.Input.Keyboard.Key;
     A: Phaser.Input.Keyboard.Key;
@@ -68,6 +68,41 @@ export class GameScene extends Phaser.Scene {
   private keyP?: Phaser.Input.Keyboard.Key;
   private keyV?: Phaser.Input.Keyboard.Key;
   private diffTune = difficultyTuning(runState.difficulty);
+
+  /** First finger on playfield (touch only); second finger ignored until release. */
+  private touchSteerPointerId: number | null = null;
+  private touchTargetX = 0;
+  private touchTargetY = 0;
+  private bombUiBounds = new Phaser.Geom.Rectangle(0, 0, 0, 0);
+  private chargeUiBounds = new Phaser.Geom.Rectangle(0, 0, 0, 0);
+  private uiChargeHeld = false;
+  private uiBombQueued = false;
+  private mobileUiDestroyables: Phaser.GameObjects.GameObject[] = [];
+
+  private readonly onPointerDownGame = (pointer: Phaser.Input.Pointer): void => {
+    void ensureAudioUnlocked();
+    pointer.updateWorldPoint(this.cameras.main);
+    if (!pointer.wasTouch) return;
+    if (this.pointHitsMobileChrome(pointer.worldX, pointer.worldY)) return;
+    if (this.touchSteerPointerId !== null) return;
+    this.touchSteerPointerId = pointer.id;
+    this.touchTargetX = pointer.worldX;
+    this.touchTargetY = pointer.worldY;
+  };
+
+  private readonly onPointerMoveGame = (pointer: Phaser.Input.Pointer): void => {
+    if (this.touchSteerPointerId !== pointer.id || !pointer.isDown) return;
+    pointer.updateWorldPoint(this.cameras.main);
+    if (this.pointHitsMobileChrome(pointer.worldX, pointer.worldY)) return;
+    this.touchTargetX = pointer.worldX;
+    this.touchTargetY = pointer.worldY;
+  };
+
+  private readonly onPointerUpGame = (pointer: Phaser.Input.Pointer): void => {
+    if (this.touchSteerPointerId === pointer.id) {
+      this.touchSteerPointerId = null;
+    }
+  };
 
   constructor() {
     super(SceneKeys.Game);
@@ -160,7 +195,7 @@ export class GameScene extends Phaser.Scene {
       .text(
         width / 2,
         height * 0.1,
-        'Hostiles & boss — move · SPACE · X charge · B bomb · P pause · V SFX mute',
+        'Hostiles & boss — move · SPACE · X charge · B bomb · P pause · V SFX mute · touch: drag + auto fire',
         {
           fontFamily: 'system-ui, sans-serif',
           fontSize: '15px',
@@ -172,12 +207,28 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(120);
 
+    this.setupMobileGameUi(width, height);
+
+    this.input.on('pointerdown', this.onPointerDownGame);
+    this.input.on('pointermove', this.onPointerMoveGame);
+    this.input.on('pointerup', this.onPointerUpGame);
+
     kb.on('keydown-R', () => this.scene.start(SceneKeys.Result));
     kb.on('keydown-G', () => this.scene.start(SceneKeys.GameOver));
     kb.on('keydown-M', () => this.scene.start(SceneKeys.MVPClear));
     kb.on('keydown-T', () => this.scene.start(SceneKeys.Title));
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input.off('pointerdown', this.onPointerDownGame);
+      this.input.off('pointermove', this.onPointerMoveGame);
+      this.input.off('pointerup', this.onPointerUpGame);
+      this.touchSteerPointerId = null;
+      this.uiChargeHeld = false;
+      this.uiBombQueued = false;
+      for (const o of this.mobileUiDestroyables) {
+        o.destroy();
+      }
+      this.mobileUiDestroyables = [];
       kb.off('keydown-R');
       kb.off('keydown-G');
       kb.off('keydown-M');
@@ -198,6 +249,101 @@ export class GameScene extends Phaser.Scene {
       this.hud = undefined;
       this.waveHint?.destroy();
       this.waveHint = undefined;
+    });
+  }
+
+  private pointHitsMobileChrome(wx: number, wy: number): boolean {
+    return (
+      Phaser.Geom.Rectangle.Contains(this.bombUiBounds, wx, wy) ||
+      Phaser.Geom.Rectangle.Contains(this.chargeUiBounds, wx, wy)
+    );
+  }
+
+  private ensureTouchSteerStillValid(): void {
+    if (this.touchSteerPointerId === null) return;
+    const ok = this.input.manager.pointers.some(
+      (p) => p.id === this.touchSteerPointerId && p.isDown,
+    );
+    if (!ok) this.touchSteerPointerId = null;
+  }
+
+  private applyTouchSteer(
+    deltaSeconds: number,
+    moveSpeed: number,
+    bounds: { minX: number; maxX: number; minY: number; maxY: number },
+  ): void {
+    const p = this.player?.sprite;
+    if (!p) return;
+    const dx = this.touchTargetX - p.x;
+    const dy = this.touchTargetY - p.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 2) return;
+    const step = Math.min(len, moveSpeed * deltaSeconds);
+    const nx = dx / len;
+    const ny = dy / len;
+    p.x = Phaser.Math.Clamp(p.x + nx * step, bounds.minX, bounds.maxX);
+    p.y = Phaser.Math.Clamp(p.y + ny * step, bounds.minY, bounds.maxY);
+    p.setVelocity(0, 0);
+  }
+
+  private setupMobileGameUi(width: number, height: number): void {
+    const touchDevice = this.sys.game.device.input.touch;
+    const uiAlpha = touchDevice ? 0.74 : 0.36;
+    const depth = 122;
+    const bw = 112;
+    const bh = 46;
+    const y = height * 0.88;
+    const chargeX = width * 0.19;
+    const bombX = width * 0.81;
+
+    this.chargeUiBounds.setTo(chargeX - bw / 2, y - bh / 2, bw, bh);
+    this.bombUiBounds.setTo(bombX - bw / 2, y - bh / 2, bw, bh);
+
+    const chargeBg = this.add
+      .rectangle(chargeX, y, bw, bh, 0x1a2838, uiAlpha)
+      .setStrokeStyle(2, 0x5c7a92, 0.92)
+      .setDepth(depth)
+      .setInteractive({ useHandCursor: true });
+    const chargeLbl = this.add
+      .text(chargeX, y, 'HOLD\nCHARGE', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '14px',
+        color: '#cfe9ff',
+        align: 'center',
+      })
+      .setOrigin(0.5)
+      .setDepth(depth + 1);
+
+    const bombBg = this.add
+      .rectangle(bombX, y, bw, bh, 0x1a2838, uiAlpha)
+      .setStrokeStyle(2, 0x5c7a92, 0.92)
+      .setDepth(depth)
+      .setInteractive({ useHandCursor: true });
+    const bombLbl = this.add
+      .text(bombX, y, 'BOMB', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '15px',
+        color: '#cfe9ff',
+      })
+      .setOrigin(0.5)
+      .setDepth(depth + 1);
+
+    this.mobileUiDestroyables.push(chargeBg, chargeLbl, bombBg, bombLbl);
+
+    chargeBg.on('pointerdown', () => {
+      void ensureAudioUnlocked();
+      this.uiChargeHeld = true;
+    });
+    chargeBg.on('pointerup', () => {
+      this.uiChargeHeld = false;
+    });
+    chargeBg.on('pointerout', () => {
+      this.uiChargeHeld = false;
+    });
+
+    bombBg.on('pointerdown', () => {
+      void ensureAudioUnlocked();
+      this.uiBombQueued = true;
     });
   }
 
@@ -521,6 +667,7 @@ export class GameScene extends Phaser.Scene {
       persistSfxPreferenceToStorage(m);
     }
     if (this.paused) {
+      this.ensureTouchSteerStillValid();
       this.hud?.sync(runState, isSfxMuted());
       if (this.bossSprite?.active && this.bossDef) {
         const ph = bossPhaseIndex(this.bossHp, this.bossDef.maxHp);
@@ -540,40 +687,52 @@ export class GameScene extends Phaser.Scene {
     const width = this.scale.width;
     const height = this.scale.height;
     const margin = 20;
+    const bounds = { minX: margin, maxX: width - margin, minY: margin, maxY: height - margin };
 
-    const xDown = !!this.keyX?.isDown;
+    this.ensureTouchSteerStillValid();
+    const touchSteering = this.touchSteerPointerId !== null;
+
+    const chargeHeld = !!this.keyX?.isDown || this.uiChargeHeld;
     const ch = specialWeaponStats.charge;
-    if (xDown) {
+    if (chargeHeld) {
       runState.charge01 = Math.min(1, runState.charge01 + ch.fillPerSecond * ds);
     } else {
-      if (this.keyXWasDown && runState.charge01 >= ch.minRelease) {
+      if (this.chargeWasHeld && runState.charge01 >= ch.minRelease) {
         this.fireChargeWeapon(runState.selectedShipId);
         runState.charge01 = 0;
       } else {
         runState.charge01 = Math.max(0, runState.charge01 - ch.decayPerSecond * ds);
       }
     }
-    this.keyXWasDown = xDown;
+    this.chargeWasHeld = chargeHeld;
 
-    if (this.keyB && Phaser.Input.Keyboard.JustDown(this.keyB)) {
+    const bombKey = this.keyB && Phaser.Input.Keyboard.JustDown(this.keyB);
+    if (bombKey || this.uiBombQueued) {
+      this.uiBombQueued = false;
       this.tryBomb(runState.selectedShipId);
     }
 
-    this.player?.updateMovement(
-      ds,
-      {
-        left: !!this.cursors?.left.isDown || this.wasd.A.isDown,
-        right: !!this.cursors?.right.isDown || this.wasd.D.isDown,
-        up: !!this.cursors?.up.isDown || this.wasd.W.isDown,
-        down: !!this.cursors?.down.isDown || this.wasd.S.isDown,
-      },
-      stats.moveSpeed,
-      { minX: margin, maxX: width - margin, minY: margin, maxY: height - margin },
-    );
+    const kbLeft = !!this.cursors?.left.isDown || this.wasd.A.isDown;
+    const kbRight = !!this.cursors?.right.isDown || this.wasd.D.isDown;
+    const kbUp = !!this.cursors?.up.isDown || this.wasd.W.isDown;
+    const kbDown = !!this.cursors?.down.isDown || this.wasd.S.isDown;
+    const kbMove = kbLeft || kbRight || kbUp || kbDown;
+
+    if (kbMove) {
+      this.player?.updateMovement(
+        ds,
+        { left: kbLeft, right: kbRight, up: kbUp, down: kbDown },
+        stats.moveSpeed,
+        bounds,
+      );
+    } else if (touchSteering) {
+      this.applyTouchSteer(ds, stats.moveSpeed, bounds);
+    }
 
     this.player?.refreshBlink(time);
 
-    if (this.keySpace?.isDown && time - this.lastFireTime >= primary.cooldownMs) {
+    const wantFire = !!this.keySpace?.isDown || touchSteering;
+    if (wantFire && time - this.lastFireTime >= primary.cooldownMs) {
       this.firePrimary(primary);
       this.lastFireTime = time;
     }
