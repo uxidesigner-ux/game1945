@@ -41,7 +41,7 @@ export class HUD {
     this.texts.stage.setText(stageLine);
 
     const ship = getShip(state.selectedShipId);
-    this.texts.ship.setText(`${ship.displayName}`);
+    this.texts.ship.setText(`${ship.displayName}  ·  PWR ${state.powerLevel}`);
 
     this.texts.lives.setText(`Lives ${state.lives}`);
     this.texts.bombs.setText(`Bombs ${state.bombs}`);
