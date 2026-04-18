@@ -502,6 +502,7 @@ export class GameScene extends Phaser.Scene {
 
     const time = this.time.now;
     runState.stageElapsedMs += dt;
+    runState.runElapsedMs += dt;
     const ds = dt / 1000;
     const stats = getShipCombat(runState.selectedShipId);
     const primary = resolvePrimaryStats(stats, runState.selectedShipId, runState.powerLevel);

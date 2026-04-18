@@ -14,6 +14,8 @@ export class RunState {
   currentStageIndex = 1;
   /** Ms since current GameScene started (Energy Core time bonus). */
   stageElapsedMs = 0;
+  /** Cumulative ms in gameplay this run (all GameScene time, excl. pause). */
+  runElapsedMs = 0;
 
   resetForNewRun(shipId: ShipId): void {
     this.lives = 3;
@@ -24,6 +26,7 @@ export class RunState {
     this.selectedShipId = shipId;
     this.currentStageIndex = 1;
     this.stageElapsedMs = 0;
+    this.runElapsedMs = 0;
   }
 }
 
