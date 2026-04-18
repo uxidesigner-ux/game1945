@@ -7,6 +7,11 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    const canvas = this.game.canvas;
+    if (canvas) {
+      canvas.setAttribute('tabindex', '0');
+      canvas.style.outline = 'none';
+    }
     this.scene.start(SceneKeys.Preload);
   }
 }

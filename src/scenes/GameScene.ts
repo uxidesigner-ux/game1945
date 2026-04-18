@@ -84,6 +84,7 @@ export class GameScene extends Phaser.Scene {
   private mobileUiDestroyables: Phaser.GameObjects.GameObject[] = [];
 
   private readonly onPointerDownGame = (pointer: Phaser.Input.Pointer): void => {
+    this.game.canvas?.focus();
     void ensureAudioUnlocked();
     pointer.updateWorldPoint(this.cameras.main);
     if (!pointer.wasTouch) return;
@@ -167,6 +168,7 @@ export class GameScene extends Phaser.Scene {
     this.keyV = kb.addKey(Phaser.Input.Keyboard.KeyCodes.V);
 
     kb.once('keydown', () => {
+      this.game.canvas?.focus();
       void ensureAudioUnlocked();
     });
 

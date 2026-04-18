@@ -104,6 +104,7 @@ export class ShipSelectScene extends Phaser.Scene {
   }
 
   private startRun(shipId: ShipId): void {
+    this.game.canvas?.focus();
     runState.resetForNewRun(shipId);
     this.scene.start(SceneKeys.Game);
   }

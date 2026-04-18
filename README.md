@@ -9,7 +9,11 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
+Open the URL Vite prints (usually `http://localhost:5173`). If **keyboard does nothing**, click once on the game canvas so it receives focus.
+
+### Vercel
+
+Import the repo and deploy with defaults, or rely on root **`vercel.json`** (`npm run build` → **`dist`**). Use **`npm run build`** only (not `build:gh-pages`) for a root domain like `*.vercel.app`.
 
 ```bash
 npm run build    # production bundle → dist/

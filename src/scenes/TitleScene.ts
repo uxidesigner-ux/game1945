@@ -133,6 +133,7 @@ export class TitleScene extends Phaser.Scene {
       goShipSelect();
     });
     this.input.once('pointerdown', () => {
+      this.game.canvas?.focus();
       void ensureAudioUnlocked();
       goShipSelect();
     });
