@@ -42,3 +42,7 @@ npm run preview  # serve dist/
 **Result:** Enter — next · T — title · **NEXT** / **TITLE** buttons. **Game over:** Enter / T / tap — title. **Demo clear:** Enter / R · **TITLE** / **NEW RUN** buttons.
 
 Debug shortcuts in **Game** only: R / G / M jump to Result / GameOver / MVP Clear; T — title.
+
+### Deployed site shows console errors (e.g. `FetchError`, `content.js`, `Mapify`)
+
+Those lines usually come from **browser extensions**, not this repo (extensions inject `content.js` into every page). Try a **private/incognito window with extensions disabled**, or another browser, and reload. The **favicon** is served as `favicon.svg` from `public/` so `/favicon.ico` 404 should stop after redeploy.
