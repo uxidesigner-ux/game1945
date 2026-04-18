@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { primeAudioContext } from '../audio/proceduralSfx';
 import { TextureKeys } from '../core/textureKeys';
 import { SceneKeys } from './sceneKeys';
 
@@ -12,6 +13,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
+    primeAudioContext();
     this.createProceduralTextures();
     this.scene.start(SceneKeys.Title);
   }

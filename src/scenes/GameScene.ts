@@ -972,7 +972,8 @@ export class GameScene extends Phaser.Scene {
 
   private updateHomingMissiles(ds: number): void {
     const boss = this.bossSprite?.active ? this.bossSprite : null;
-    this.playerBullets.children.iterate((ch) => {
+    this.playerBullets.children.each((ch) => {
+      if (!ch) return true;
       const s = ch as Phaser.Physics.Arcade.Sprite;
       if (!s.active) return true;
       const kind = s.getData('kind') as string | undefined;
@@ -1079,7 +1080,8 @@ export class GameScene extends Phaser.Scene {
     circles: ReadonlyArray<{ x: number; y: number; r: number }>,
   ): void {
     const victims = new Set<Phaser.Physics.Arcade.Sprite>();
-    this.enemies.children.iterate((ch) => {
+    this.enemies.children.each((ch) => {
+      if (!ch) return true;
       const e = ch as Phaser.Physics.Arcade.Sprite;
       if (!e.active) return true;
       const hit = circles.some(
@@ -1118,7 +1120,8 @@ export class GameScene extends Phaser.Scene {
   private cullOffscreenBullets(): void {
     const h = this.scale.height;
     const w = this.scale.width;
-    this.playerBullets.children.iterate((ch) => {
+    this.playerBullets.children.each((ch) => {
+      if (!ch) return true;
       const s = ch as Phaser.Physics.Arcade.Sprite;
       if (!s.active) return true;
       if (s.y < -80 || s.y > h + 50 || s.x < -40 || s.x > w + 40) {
@@ -1131,7 +1134,8 @@ export class GameScene extends Phaser.Scene {
   private cullOffscreenEnemyBullets(): void {
     const h = this.scale.height;
     const w = this.scale.width;
-    this.enemyBullets.children.iterate((ch) => {
+    this.enemyBullets.children.each((ch) => {
+      if (!ch) return true;
       const s = ch as Phaser.Physics.Arcade.Sprite;
       if (!s.active) return true;
       if (s.y < -60 || s.y > h + 80 || s.x < -50 || s.x > w + 50) {
@@ -1143,7 +1147,8 @@ export class GameScene extends Phaser.Scene {
 
   private cullPickups(): void {
     const h = this.scale.height;
-    this.pickups.children.iterate((ch) => {
+    this.pickups.children.each((ch) => {
+      if (!ch) return true;
       const s = ch as Phaser.Physics.Arcade.Sprite;
       if (!s.active) return true;
       if (s.y > h + 40) {
@@ -1155,7 +1160,8 @@ export class GameScene extends Phaser.Scene {
 
   private cullEscapedEnemies(): void {
     const h = this.scale.height;
-    this.enemies.children.iterate((ch) => {
+    this.enemies.children.each((ch) => {
+      if (!ch) return true;
       const e = ch as Phaser.Physics.Arcade.Sprite;
       if (!e.active) return true;
       if (e.y > h + 100) {

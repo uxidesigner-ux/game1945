@@ -23,6 +23,16 @@ export async function ensureAudioUnlocked(): Promise<void> {
   }
 }
 
+/** Create AudioContext as early as possible; `resume()` still needs a user gesture if suspended. */
+export function primeAudioContext(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    void getCtx();
+  } catch {
+    /* private mode / unsupported */
+  }
+}
+
 export function setSfxMuted(muted: boolean): void {
   sfxMuted = muted;
 }
