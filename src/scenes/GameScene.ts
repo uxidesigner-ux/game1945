@@ -459,8 +459,12 @@ export class GameScene extends Phaser.Scene {
     this.bossPbOverlap = this.physics.add.overlap(
       this.playerBullets,
       this.bossSprite,
-      (bulletObj) => {
-        this.onPlayerBulletHitBoss(bulletObj as Phaser.Physics.Arcade.Sprite);
+      (a, b) => {
+        // Phaser passes (bossSprite, bullet) for overlap(Group, Sprite) — see World#collideHandler.
+        const goA = a as Phaser.Physics.Arcade.Sprite;
+        const goB = b as Phaser.Physics.Arcade.Sprite;
+        const bullet = this.playerBullets.contains(goA) ? goA : goB;
+        this.onPlayerBulletHitBoss(bullet);
       },
     );
     this.bossPlOverlap = this.physics.add.overlap(this.player.sprite, this.bossSprite, () => {
@@ -487,7 +491,9 @@ export class GameScene extends Phaser.Scene {
       dmg = PLAYER_MISSILE_HIT_DAMAGE;
     }
 
-    bullet.destroy();
+    if (kind !== OrdnanceKind.Laser) {
+      bullet.destroy();
+    }
     this.applyBossDamage(dmg);
   }
 
