@@ -13,7 +13,7 @@ export class WaveDirector {
     private readonly timingMul = 1,
   ) {}
 
-  trySpawn(time: number, spawn: (enemyType: WaveEnemyType) => void): void {
+  trySpawn(time: number, spawn: (enemyType: WaveEnemyType) => boolean): void {
     if (this.doneSpawning) return;
     if (!this.initialized) {
       const first = this.script.batches[0];
@@ -25,7 +25,9 @@ export class WaveDirector {
     if (!batch) return;
     if (time < this.nextSpawnAt) return;
 
-    spawn(batch.enemyType);
+    if (!spawn(batch.enemyType)) {
+      return;
+    }
 
     this.spawnedInBatch += 1;
     if (this.spawnedInBatch >= batch.count) {

@@ -29,6 +29,8 @@ import { WaveDirector } from '../systems/WaveDirector';
 import { HUD } from '../ui/HUD';
 import { SceneKeys } from './sceneKeys';
 
+type SceneKey = (typeof SceneKeys)[keyof typeof SceneKeys];
+
 export class GameScene extends Phaser.Scene {
   private hud?: HUD;
   private player?: PlayerShip;
@@ -477,7 +479,7 @@ export class GameScene extends Phaser.Scene {
     this.applyPlayerHitFeedback();
     runState.lives -= 1;
     if (runState.lives <= 0) {
-      this.scene.start(SceneKeys.GameOver);
+      this.deferSceneStart(SceneKeys.GameOver);
     }
   }
 
@@ -497,7 +499,7 @@ export class GameScene extends Phaser.Scene {
     this.rollPickupsOnKill(x, y);
     void SFX.bossDefeated();
     this.teardownBoss();
-    this.scene.start(SceneKeys.Result);
+    this.deferSceneStart(SceneKeys.Result);
   }
 
   private updateBoss(time: number): void {
@@ -659,6 +661,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** Avoid starting a new scene inside Arcade overlap callbacks (next frame). */
+  private deferSceneStart(key: SceneKey): void {
+    this.time.delayedCall(0, () => {
+      this.scene.start(key);
+    });
+  }
+
   private rollPickupsOnKill(x: number, y: number): void {
     if (Math.random() < PICKUP_CHANCE_POWER) {
       this.spawnPickup(x, y, PickupKind.Power);
@@ -671,7 +680,8 @@ export class GameScene extends Phaser.Scene {
 
   private spawnPickup(x: number, y: number, kind: string): void {
     const tex = kind === PickupKind.Power ? TextureKeys.PickupPower : TextureKeys.PickupEnergy;
-    const s = this.pickups.create(x, y, tex) as Phaser.Physics.Arcade.Sprite;
+    const s = this.pickups.create(x, y, tex) as Phaser.Physics.Arcade.Sprite | null;
+    if (!s) return;
     s.setData('pickupKind', kind);
     s.setDepth(55);
     s.setVelocity(0, 52);
@@ -704,7 +714,7 @@ export class GameScene extends Phaser.Scene {
     this.applyPlayerHitFeedback();
     runState.lives -= 1;
     if (runState.lives <= 0) {
-      this.scene.start(SceneKeys.GameOver);
+      this.deferSceneStart(SceneKeys.GameOver);
     }
   }
 
@@ -737,10 +747,9 @@ export class GameScene extends Phaser.Scene {
     this.removeEnemy(enemy, false);
     runState.lives -= 1;
     if (runState.lives <= 0) {
-      this.scene.start(SceneKeys.GameOver);
+      this.deferSceneStart(SceneKeys.GameOver);
       return;
     }
-    this.tryCompleteWave();
   }
 
   private tryCompleteWave(): void {
@@ -753,11 +762,15 @@ export class GameScene extends Phaser.Scene {
 
     if (bossDef && !this.bossRoundScheduled) {
       this.bossRoundScheduled = true;
-      this.spawnBoss(bossDef);
+      const def = bossDef;
+      this.time.delayedCall(0, () => {
+        if (!this.scene.isActive(SceneKeys.Game)) return;
+        this.spawnBoss(def);
+      });
       return;
     }
 
-    this.scene.start(SceneKeys.Result);
+    this.deferSceneStart(SceneKeys.Result);
   }
 
   update(_t: number, dt: number): void {
@@ -896,7 +909,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnPrimaryBullet(x: number, y: number, angleDeg: number, speed: number): void {
-    const b = this.playerBullets.create(x, y, TextureKeys.BulletPlayer) as Phaser.Physics.Arcade.Sprite;
+    const b = this.playerBullets.create(x, y, TextureKeys.BulletPlayer) as Phaser.Physics.Arcade.Sprite | null;
+    if (!b) return;
     b.setData('kind', OrdnanceKind.Primary);
     b.setDepth(60);
     const rad = Phaser.Math.DegToRad(angleDeg);
@@ -922,7 +936,8 @@ export class GameScene extends Phaser.Scene {
 
   private spawnChargeLaser(x: number, y: number): void {
     const speed = specialWeaponStats.charge.falcon.laserSpeed;
-    const b = this.playerBullets.create(x, y, TextureKeys.ChargeLaser) as Phaser.Physics.Arcade.Sprite;
+    const b = this.playerBullets.create(x, y, TextureKeys.ChargeLaser) as Phaser.Physics.Arcade.Sprite | null;
+    if (!b) return;
     b.setData('kind', OrdnanceKind.Laser);
     b.setDepth(62);
     b.setVelocity(0, -speed);
@@ -938,7 +953,8 @@ export class GameScene extends Phaser.Scene {
     const step = missileCount > 1 ? spreadDeg / (missileCount - 1) : 0;
     for (let i = 0; i < missileCount; i++) {
       const ang = -half + i * step;
-      const b = this.playerBullets.create(x, y, TextureKeys.HomingMissile) as Phaser.Physics.Arcade.Sprite;
+      const b = this.playerBullets.create(x, y, TextureKeys.HomingMissile) as Phaser.Physics.Arcade.Sprite | null;
+      if (!b) continue;
       b.setData('kind', OrdnanceKind.Missile);
       b.setData('turnRate', turnRateRadPerSec);
       b.setData('speed', missileSpeed);
@@ -1006,7 +1022,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnEnemyBullet(x: number, y: number, angleRad: number, speed: number): void {
-    const b = this.enemyBullets.create(x, y, TextureKeys.BulletEnemy) as Phaser.Physics.Arcade.Sprite;
+    const b = this.enemyBullets.create(x, y, TextureKeys.BulletEnemy) as Phaser.Physics.Arcade.Sprite | null;
+    if (!b) return;
     b.setDepth(57);
     b.setVelocity(Math.cos(angleRad) * speed, Math.sin(angleRad) * speed);
     const body = b.body as Phaser.Physics.Arcade.Body;
@@ -1076,13 +1093,14 @@ export class GameScene extends Phaser.Scene {
     victims.forEach((e) => this.removeEnemy(e, true));
   }
 
-  private spawnEnemy(t: WaveEnemyType): void {
+  private spawnEnemy(t: WaveEnemyType): boolean {
     const width = this.scale.width;
     const margin = 48;
     const x = Phaser.Math.Between(margin, width - margin);
     const y = -46;
     const prof = waveEnemySpawnByType[t];
-    const e = this.enemies.create(x, y, prof.textureKey) as Phaser.Physics.Arcade.Sprite;
+    const e = this.enemies.create(x, y, prof.textureKey) as Phaser.Physics.Arcade.Sprite | null;
+    if (!e) return false;
     if (t === 'raider') {
       e.setData('wobble', Phaser.Math.FloatBetween(0, Math.PI * 2));
     }
@@ -1094,6 +1112,7 @@ export class GameScene extends Phaser.Scene {
     body.setSize(prof.hitSize, prof.hitSize);
     body.setOffset(prof.offsetX, prof.offsetY);
     this.enemiesAlive += 1;
+    return true;
   }
 
   private cullOffscreenBullets(): void {
