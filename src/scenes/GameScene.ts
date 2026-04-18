@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SFX, toggleSfxMuted } from '../audio/proceduralSfx';
 import { TextureKeys } from '../core/textureKeys';
 import { runState } from '../core/RunState';
 import { enemyGunnerByType, waveEnemySpawnByType } from '../data/enemies';
@@ -57,6 +58,7 @@ export class GameScene extends Phaser.Scene {
   private pauseBg?: Phaser.GameObjects.Rectangle;
   private pauseTxt?: Phaser.GameObjects.Text;
   private keyP?: Phaser.Input.Keyboard.Key;
+  private keyV?: Phaser.Input.Keyboard.Key;
 
   constructor() {
     super(SceneKeys.Game);
@@ -109,6 +111,7 @@ export class GameScene extends Phaser.Scene {
     this.keyX = kb.addKey(Phaser.Input.Keyboard.KeyCodes.X);
     this.keyB = kb.addKey(Phaser.Input.Keyboard.KeyCodes.B);
     this.keyP = kb.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+    this.keyV = kb.addKey(Phaser.Input.Keyboard.KeyCodes.V);
 
     this.physics.add.overlap(
       this.playerBullets,
@@ -139,7 +142,7 @@ export class GameScene extends Phaser.Scene {
       .text(
         width / 2,
         height * 0.1,
-        'Hostiles & boss — move · SPACE · X charge · B bomb · P pause',
+        'Hostiles & boss — move · SPACE · X charge · B bomb · P pause · V SFX mute',
         {
           fontFamily: 'system-ui, sans-serif',
           fontSize: '15px',
@@ -235,6 +238,7 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     if (!p || !this.bossSprite?.active) return;
     if (!p.tryBeginHit(this.time.now)) return;
+    void SFX.playerHurt();
     runState.lives -= 1;
     if (runState.lives <= 0) {
       this.scene.start(SceneKeys.GameOver);
@@ -336,6 +340,7 @@ export class GameScene extends Phaser.Scene {
 
   private playBossPhaseShift(phase: number): void {
     void phase;
+    void SFX.bossPhase();
     this.cameras.main.flash(160, 255, 210, 140);
     const b = this.bossSprite;
     if (b?.active) {
@@ -416,10 +421,12 @@ export class GameScene extends Phaser.Scene {
     pickup.destroy();
     if (kind === PickupKind.Power) {
       runState.powerLevel = Math.min(2, runState.powerLevel + 1);
+      void SFX.pickupPower();
       return;
     }
     if (kind === PickupKind.EnergyCore) {
       runState.score += energyCoreScoreAt(runState.stageElapsedMs);
+      void SFX.pickupCore();
     }
   }
 
@@ -428,6 +435,7 @@ export class GameScene extends Phaser.Scene {
     if (!p || !bullet.active) return;
     bullet.destroy();
     if (!p.tryBeginHit(this.time.now)) return;
+    void SFX.playerHurt();
     runState.lives -= 1;
     if (runState.lives <= 0) {
       this.scene.start(SceneKeys.GameOver);
@@ -459,6 +467,7 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     if (!p || !enemy.active) return;
     if (!p.tryBeginHit(this.time.now)) return;
+    void SFX.playerHurt();
     this.removeEnemy(enemy, false);
     runState.lives -= 1;
     if (runState.lives <= 0) {
@@ -488,6 +497,9 @@ export class GameScene extends Phaser.Scene {
   update(_t: number, dt: number): void {
     if (this.keyP && Phaser.Input.Keyboard.JustDown(this.keyP)) {
       this.setPaused(!this.paused);
+    }
+    if (this.keyV && Phaser.Input.Keyboard.JustDown(this.keyV)) {
+      toggleSfxMuted();
     }
     if (this.paused) {
       this.hud?.sync(runState);
@@ -740,6 +752,7 @@ export class GameScene extends Phaser.Scene {
     this.damageEnemiesInCircles(circles);
     this.damageBossFromBomb(circles);
     this.clearEnemyBullets();
+    void SFX.bomb();
   }
 
   private flashBomb(cx: number, cy: number, radius: number, fill: number): void {
