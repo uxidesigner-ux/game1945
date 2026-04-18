@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ensureAudioUnlocked } from '../audio/proceduralSfx';
+import { loadHighScore } from '../core/highScore';
 import { runState } from '../core/RunState';
 import {
   difficultyDisplay,
@@ -34,8 +35,17 @@ export class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    const best = loadHighScore();
+    this.add
+      .text(width / 2, height * 0.44, `Best score ${best.toLocaleString()}`, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '20px',
+        color: '#ffd27f',
+      })
+      .setOrigin(0.5);
+
     const hint = this.add
-      .text(width / 2, height * 0.52, '', {
+      .text(width / 2, height * 0.58, '', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '20px',
         color: '#ffd27f',

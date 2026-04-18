@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { ensureAudioUnlocked } from '../audio/proceduralSfx';
 import { runState } from '../core/RunState';
 import { difficultyDisplay } from '../data/difficulty';
 import { allShips, getShip } from '../data/ships';
@@ -12,6 +13,28 @@ export class ShipSelectScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+
+    const goTitle = (): void => {
+      this.scene.start(SceneKeys.Title);
+    };
+
+    const back = this.add
+      .text(20, 22, '← Title', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '18px',
+        color: '#8fb8d9',
+      })
+      .setOrigin(0, 0)
+      .setInteractive({ useHandCursor: true });
+    back.on('pointerdown', () => {
+      void ensureAudioUnlocked();
+      goTitle();
+    });
+
+    this.input.keyboard?.once('keydown-ESC', () => {
+      void ensureAudioUnlocked();
+      goTitle();
+    });
 
     this.add
       .text(width / 2, height * 0.12, 'SELECT CRAFT', {
@@ -61,7 +84,7 @@ export class ShipSelectScene extends Phaser.Scene {
     });
 
     this.add
-      .text(width / 2, height * 0.88, '1 / 2 — keyboard  ·  Click — start', {
+      .text(width / 2, height * 0.88, '1 / 2 — keyboard ·  tap craft · ESC — title', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '16px',
         color: '#5c7a92',

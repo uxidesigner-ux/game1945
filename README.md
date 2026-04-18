@@ -27,10 +27,12 @@ npm run preview  # serve dist/
 | Pause | P or on-screen **PAUSE** (top-right) |
 | SFX mute | V (preference saved in this browser) |
 | Title — difficulty | H toggles Normal / Hard (saved locally; faster spawns & enemy fire) |
-| Ship select | 1 / 2 or click craft |
+| Ship select | 1 / 2 or tap craft · **ESC** or **← Title** — back |
+
+**High score:** best run score is saved in `localStorage` for this browser and shown on the title screen. Beating it shows **New best score!** on stage clear, game over, or demo complete.
 
 **Touch (in-game):** drag a finger on the playfield to move (auto-fire while dragging). Top-right **PAUSE**; when paused, tap **RESUME** (or press P). Lower corners: hold **CHARGE**, tap **BOMB**. Touch steering uses the first finger only until you lift it, so you can bomb with another finger. Title: tap anywhere to continue (same as ENTER).
 
-**Result:** Enter — next stage · T — title. **Game over:** Enter / T — title. **Demo clear:** Enter — title · R — ship select.
+**Result:** Enter — next · T — title · **NEXT** / **TITLE** buttons. **Game over:** Enter / T / tap — title. **Demo clear:** Enter / R · **TITLE** / **NEW RUN** buttons.
 
 Debug shortcuts in **Game** only: R / G / M jump to Result / GameOver / MVP Clear; T — title.

@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
+import { ensureAudioUnlocked } from '../audio/proceduralSfx';
 import { formatTimeMs } from '../core/formatTime';
+import { loadHighScore, recordHighScoreIfBest } from '../core/highScore';
 import { runState } from '../core/RunState';
 import { SceneKeys } from './sceneKeys';
 
@@ -11,8 +13,12 @@ export class MVPClearScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
+    const prevBest = loadHighScore();
+    recordHighScoreIfBest(runState.score);
+    const newRecord = runState.score > prevBest;
+
     this.add
-      .text(width / 2, height * 0.3, 'DEMO COMPLETE', {
+      .text(width / 2, height * 0.28, 'DEMO COMPLETE', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '38px',
         color: '#ffd27f',
@@ -20,7 +26,7 @@ export class MVPClearScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.4, 'All demo stages cleared. Thanks for playing.', {
+      .text(width / 2, height * 0.38, 'All demo stages cleared. Thanks for playing.', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '18px',
         color: '#e8f4ff',
@@ -30,15 +36,25 @@ export class MVPClearScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.5, `Final score ${runState.score.toLocaleString()}`, {
+      .text(width / 2, height * 0.48, `Final score ${runState.score.toLocaleString()}`, {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '22px',
         color: '#cfe9ff',
       })
       .setOrigin(0.5);
 
+    if (newRecord) {
+      this.add
+        .text(width / 2, height * 0.54, 'New best score!', {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '18px',
+          color: '#ffd27f',
+        })
+        .setOrigin(0.5);
+    }
+
     this.add
-      .text(width / 2, height * 0.58, `Total run ${formatTimeMs(runState.runElapsedMs)}`, {
+      .text(width / 2, height * 0.6, `Total run ${formatTimeMs(runState.runElapsedMs)}`, {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '18px',
         color: '#8fb8d9',
@@ -46,12 +62,12 @@ export class MVPClearScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.7, 'ENTER — title · R — new run (ship select)', {
+      .text(width / 2, height * 0.66, 'ENTER — title · R — ship select · tap buttons', {
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '17px',
+        fontSize: '16px',
         color: '#7aa6c8',
         align: 'center',
-        wordWrap: { width: width * 0.88 },
+        wordWrap: { width: width * 0.9 },
       })
       .setOrigin(0.5);
 
@@ -61,7 +77,52 @@ export class MVPClearScene extends Phaser.Scene {
     const toSelect = (): void => {
       this.scene.start(SceneKeys.ShipSelect);
     };
-    this.input.keyboard?.once('keydown-ENTER', toTitle);
-    this.input.keyboard?.once('keydown-R', toSelect);
+
+    const btnY = height * 0.8;
+    const bw = 188;
+    const bh = 50;
+    const titleBg = this.add
+      .rectangle(width * 0.3, btnY, bw, bh, 0x1a2838, 0.88)
+      .setStrokeStyle(2, 0x5c7a92, 0.95)
+      .setInteractive({ useHandCursor: true });
+    const titleTxt = this.add
+      .text(width * 0.3, btnY, 'TITLE', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '20px',
+        color: '#cfe9ff',
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    const runBg = this.add
+      .rectangle(width * 0.7, btnY, bw, bh, 0x1a2838, 0.88)
+      .setStrokeStyle(2, 0x5c7a92, 0.95)
+      .setInteractive({ useHandCursor: true });
+    const runTxt = this.add
+      .text(width * 0.7, btnY, 'NEW RUN', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '20px',
+        color: '#cfe9ff',
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    const wire = (fn: () => void): void => {
+      void ensureAudioUnlocked();
+      fn();
+    };
+    titleBg.on('pointerdown', () => wire(toTitle));
+    titleTxt.on('pointerdown', () => wire(toTitle));
+    runBg.on('pointerdown', () => wire(toSelect));
+    runTxt.on('pointerdown', () => wire(toSelect));
+
+    this.input.keyboard?.once('keydown-ENTER', () => {
+      void ensureAudioUnlocked();
+      toTitle();
+    });
+    this.input.keyboard?.once('keydown-R', () => {
+      void ensureAudioUnlocked();
+      toSelect();
+    });
   }
 }
