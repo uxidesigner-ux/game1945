@@ -1,5 +1,12 @@
 import Phaser from 'phaser';
-import { SFX, toggleSfxMuted } from '../audio/proceduralSfx';
+import {
+  ensureAudioUnlocked,
+  isSfxMuted,
+  loadSfxPreferenceFromStorage,
+  persistSfxPreferenceToStorage,
+  SFX,
+  toggleSfxMuted,
+} from '../audio/proceduralSfx';
 import { TextureKeys } from '../core/textureKeys';
 import { runState } from '../core/RunState';
 import { enemyGunnerByType, waveEnemySpawnByType } from '../data/enemies';
@@ -65,6 +72,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    loadSfxPreferenceFromStorage();
     const width = this.scale.width;
     const height = this.scale.height;
 
@@ -113,6 +121,10 @@ export class GameScene extends Phaser.Scene {
     this.keyP = kb.addKey(Phaser.Input.Keyboard.KeyCodes.P);
     this.keyV = kb.addKey(Phaser.Input.Keyboard.KeyCodes.V);
 
+    kb.once('keydown', () => {
+      void ensureAudioUnlocked();
+    });
+
     this.physics.add.overlap(
       this.playerBullets,
       this.enemies,
@@ -135,7 +147,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.hud = new HUD(this);
-    this.hud.sync(runState);
+    this.hud.sync(runState, isSfxMuted());
     runState.stageElapsedMs = 0;
 
     this.waveHint = this.add
@@ -499,10 +511,11 @@ export class GameScene extends Phaser.Scene {
       this.setPaused(!this.paused);
     }
     if (this.keyV && Phaser.Input.Keyboard.JustDown(this.keyV)) {
-      toggleSfxMuted();
+      const m = toggleSfxMuted();
+      persistSfxPreferenceToStorage(m);
     }
     if (this.paused) {
-      this.hud?.sync(runState);
+      this.hud?.sync(runState, isSfxMuted());
       if (this.bossSprite?.active && this.bossDef) {
         const ph = bossPhaseIndex(this.bossHp, this.bossDef.maxHp);
         this.hud?.setBossBar(true, this.bossDef.displayName, this.bossHp, this.bossDef.maxHp, ph);
@@ -571,7 +584,7 @@ export class GameScene extends Phaser.Scene {
     this.cullEscapedEnemies();
     this.cullPickups();
 
-    this.hud?.sync(runState);
+    this.hud?.sync(runState, isSfxMuted());
 
     if (this.bossSprite?.active && this.bossDef) {
       const ph = bossPhaseIndex(this.bossHp, this.bossDef.maxHp);
@@ -584,6 +597,7 @@ export class GameScene extends Phaser.Scene {
   private firePrimary(primary: ResolvedPrimary): void {
     const p = this.player?.sprite;
     if (!p) return;
+    void SFX.primaryFire();
     if (runState.selectedShipId === 'falcon' && primary.pattern.kind === 'forward' && runState.powerLevel >= 2) {
       this.spawnPrimaryBullet(p.x - 11, p.y - 24, 0, primary.bulletSpeed);
       this.spawnPrimaryBullet(p.x + 11, p.y - 24, 0, primary.bulletSpeed);
@@ -626,6 +640,7 @@ export class GameScene extends Phaser.Scene {
   private fireChargeWeapon(shipId: ShipId): void {
     const p = this.player?.sprite;
     if (!p) return;
+    void SFX.chargeRelease();
     if (shipId === 'falcon') {
       this.spawnChargeLaser(p.x, p.y - 30);
       return;

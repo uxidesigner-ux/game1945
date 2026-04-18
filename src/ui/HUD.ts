@@ -11,7 +11,7 @@ const BOSS_BAR_H = 14;
 const BOSS_FILL_INSET = 3;
 
 /**
- * In-game HUD: lives, bombs, charge, score. Updates from RunState each frame or on demand.
+ * In-game HUD: lives, bombs, charge, score, SFX mute indicator. Updates from RunState each frame or on demand.
  */
 export class HUD {
   private readonly texts: {
@@ -21,6 +21,7 @@ export class HUD {
     bombs: Phaser.GameObjects.Text;
     charge: Phaser.GameObjects.Text;
     score: Phaser.GameObjects.Text;
+    sfx: Phaser.GameObjects.Text;
   };
 
   private readonly bossBar: {
@@ -42,6 +43,9 @@ export class HUD {
       bombs: scene.add.text(pad, pad + 78, '', { fontSize: '18px', color: HUD_COLOR }),
       charge: scene.add.text(pad, pad + 104, '', { fontSize: '18px', color: HUD_COLOR }),
       score: scene.add.text(w - pad, pad, '', { fontSize: '20px', color: HUD_COLOR }).setOrigin(1, 0),
+      sfx: scene.add
+        .text(w - pad, pad + 26, '', { fontSize: '14px', color: DIM_COLOR })
+        .setOrigin(1, 0),
     };
 
     const by = h - 28;
@@ -75,7 +79,7 @@ export class HUD {
     this.setBossBar(false, '', 0, 1, 0);
   }
 
-  sync(state: RunState): void {
+  sync(state: RunState, sfxMuted: boolean): void {
     const stage = getStageByIndex(state.currentStageIndex);
     const stageLine = stage
       ? `${stage.displayName}`
@@ -90,6 +94,8 @@ export class HUD {
     const pct = Math.round(state.charge01 * 100);
     this.texts.charge.setText(`Charge ${pct}%`);
     this.texts.score.setText(`Score ${state.score.toLocaleString()}`);
+    this.texts.sfx.setText(sfxMuted ? 'SFX · OFF' : 'SFX · ON');
+    this.texts.sfx.setColor(sfxMuted ? '#b07878' : DIM_COLOR);
   }
 
   setBossBar(show: boolean, displayName: string, hp: number, maxHp: number, phaseIdx: number): void {

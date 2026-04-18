@@ -1,5 +1,7 @@
 /** Tiny Web Audio beeps — no asset files; unlocks after first user input. */
 
+const STORAGE_KEY = 'vortex_strikers_sfx_muted';
+
 let audioCtx: AudioContext | null = null;
 let sfxMuted = false;
 
@@ -32,6 +34,25 @@ export function toggleSfxMuted(): boolean {
 
 export function isSfxMuted(): boolean {
   return sfxMuted;
+}
+
+/** Restore mute flag from localStorage (call when entering gameplay). */
+export function loadSfxPreferenceFromStorage(): void {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY);
+    if (v === '1') sfxMuted = true;
+    else if (v === '0') sfxMuted = false;
+  } catch {
+    /* private mode / denied */
+  }
+}
+
+export function persistSfxPreferenceToStorage(muted: boolean): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, muted ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
 }
 
 function tone(
@@ -94,5 +115,21 @@ export const SFX = {
     await ensureAudioUnlocked();
     if (sfxMuted) return;
     tone(70, 0.32, 0.11, 'square');
+  },
+
+  /** One short blip per volley — keeps fire readable without noise. */
+  async primaryFire(): Promise<void> {
+    await ensureAudioUnlocked();
+    if (sfxMuted) return;
+    tone(520, 0.035, 0.028);
+  },
+
+  async chargeRelease(): Promise<void> {
+    await ensureAudioUnlocked();
+    if (sfxMuted) return;
+    tone(340, 0.09, 0.042, 'triangle');
+    window.setTimeout(() => {
+      if (!sfxMuted) tone(620, 0.06, 0.028);
+    }, 40);
   },
 };
