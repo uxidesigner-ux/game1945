@@ -782,8 +782,15 @@ export class GameScene extends Phaser.Scene {
       this.time.delayedCall(0, () => {
         this.bossSpawnPending = false;
         if (!this.scene.isActive(SceneKeys.Game)) return;
+        // Last-enemy ram can decrement lives after tryCompleteWave scheduled this; don't spawn if dead.
+        if (runState.lives <= 0) return;
         this.spawnBoss(def);
       });
+      return;
+    }
+
+    // Boss stages finish via destroyBossVictory only — never auto-Result here or we double-start Result.
+    if (bossDef) {
       return;
     }
 
@@ -1120,6 +1127,7 @@ export class GameScene extends Phaser.Scene {
     const x = Phaser.Math.Between(margin, width - margin);
     const y = -46;
     const prof = waveEnemySpawnByType[t];
+    if (!prof) return;
     const e = this.enemies.create(x, y, prof.textureKey) as Phaser.Physics.Arcade.Sprite | null;
     if (!e) return;
     if (t === 'raider') {
