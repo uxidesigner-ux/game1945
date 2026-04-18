@@ -14,8 +14,14 @@ import { enemyGunnerByType, waveEnemySpawnByType } from '../data/enemies';
 import { bossPhaseIndex, getBossDefinition, type BossDefinition } from '../data/bosses';
 import { PickupKind, PICKUP_CHANCE_ENERGY_CORE, PICKUP_CHANCE_POWER } from '../data/pickups';
 import { energyCoreScoreAt, SCORE_GRUNT_KILL } from '../data/scoring';
-import { getShipCombat } from '../data/ships/combatStats';
-import type { PrimaryPattern } from '../data/ships/combatStats';
+import {
+  getShipCombat,
+  LASER_HIT_INTERVAL_MS,
+  laserTickDamage,
+  PLAYER_MISSILE_HIT_DAMAGE,
+  primaryHitDamage,
+  type PrimaryPattern,
+} from '../data/ships/combatStats';
 import { resolvePrimaryStats, type ResolvedPrimary } from '../data/ships/powerLevel';
 import { OrdnanceKind, specialWeaponStats } from '../data/ships/specialWeapons';
 import type { ShipId } from '../data/ships/types';
@@ -466,8 +472,23 @@ export class GameScene extends Phaser.Scene {
 
   private onPlayerBulletHitBoss(bullet: Phaser.Physics.Arcade.Sprite): void {
     if (!bullet.active || !this.bossSprite?.active) return;
+    const kind = (bullet.getData('kind') as string | undefined) ?? OrdnanceKind.Primary;
+
+    let dmg = primaryHitDamage(runState.powerLevel);
+    if (kind === OrdnanceKind.Laser) {
+      const t = this.time.now;
+      const last = this.bossSprite.getData('laserTick') as number | undefined;
+      if (last !== undefined && t - last < LASER_HIT_INTERVAL_MS) {
+        return;
+      }
+      this.bossSprite.setData('laserTick', t);
+      dmg = laserTickDamage(runState.powerLevel);
+    } else if (kind === OrdnanceKind.Missile) {
+      dmg = PLAYER_MISSILE_HIT_DAMAGE;
+    }
+
     bullet.destroy();
-    this.applyBossDamage(1);
+    this.applyBossDamage(dmg);
   }
 
   private applyPlayerHitFeedback(): void {
@@ -747,10 +768,31 @@ export class GameScene extends Phaser.Scene {
   private onBulletHitEnemy(bullet: Phaser.Physics.Arcade.Sprite, enemy: Phaser.Physics.Arcade.Sprite): void {
     if (!bullet.active || !enemy.active) return;
     const kind = (bullet.getData('kind') as string | undefined) ?? OrdnanceKind.Primary;
+
+    let dmg = primaryHitDamage(runState.powerLevel);
+    if (kind === OrdnanceKind.Laser) {
+      const t = this.time.now;
+      const last = enemy.getData('laserTick') as number | undefined;
+      if (last !== undefined && t - last < LASER_HIT_INTERVAL_MS) {
+        return;
+      }
+      enemy.setData('laserTick', t);
+      dmg = laserTickDamage(runState.powerLevel);
+    } else if (kind === OrdnanceKind.Missile) {
+      dmg = PLAYER_MISSILE_HIT_DAMAGE;
+    }
+
     if (kind !== OrdnanceKind.Laser) {
       bullet.destroy();
     }
-    this.removeEnemy(enemy, true);
+
+    let hp = enemy.getData('hp') as number | undefined;
+    if (hp === undefined) hp = 1;
+    hp -= dmg;
+    enemy.setData('hp', hp);
+    if (hp <= 0) {
+      this.removeEnemy(enemy, true);
+    }
   }
 
   private onPlayerRamEnemy(enemy: Phaser.Physics.Arcade.Sprite): void {
@@ -1135,6 +1177,8 @@ export class GameScene extends Phaser.Scene {
     }
     e.setDepth(prof.depth);
     e.setData('enemyRole', t);
+    const hpMul = runState.currentStageIndex >= 2 ? 1.38 : 1;
+    e.setData('hp', Math.max(1, Math.round(prof.maxHp * hpMul)));
     e.setVelocity(0, Phaser.Math.Between(prof.vyMin, prof.vyMax));
     const body = e.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);

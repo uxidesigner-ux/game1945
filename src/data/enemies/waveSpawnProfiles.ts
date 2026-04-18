@@ -9,6 +9,8 @@ export interface WaveEnemySpawnProfile {
   offsetX: number;
   offsetY: number;
   depth: number;
+  /** Base HP before stage multiplier. */
+  maxHp: number;
 }
 
 /** Spawn motion & hitbox per wave enemy id. */
@@ -21,6 +23,7 @@ export const waveEnemySpawnByType: Record<WaveEnemyType, WaveEnemySpawnProfile> 
     offsetX: 6,
     offsetY: 6,
     depth: 41,
+    maxHp: 4,
   },
   turret: {
     textureKey: TextureKeys.EnemyTurret,
@@ -30,6 +33,7 @@ export const waveEnemySpawnByType: Record<WaveEnemyType, WaveEnemySpawnProfile> 
     offsetX: 3,
     offsetY: 10,
     depth: 41,
+    maxHp: 10,
   },
   raider: {
     textureKey: TextureKeys.EnemyRaider,
@@ -39,6 +43,7 @@ export const waveEnemySpawnByType: Record<WaveEnemyType, WaveEnemySpawnProfile> 
     offsetX: 7,
     offsetY: 5,
     depth: 41,
+    maxHp: 6,
   },
 };
 

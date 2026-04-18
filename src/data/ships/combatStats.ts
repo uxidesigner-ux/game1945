@@ -29,3 +29,18 @@ export const shipCombatById: Record<ShipId, ShipCombatStats> = {
 export function getShipCombat(id: ShipId): ShipCombatStats {
   return shipCombatById[id];
 }
+
+/** Primary shot damage per hit (power level 0–2). */
+export function primaryHitDamage(powerLevel: number): number {
+  return 1 + Math.min(2, Math.max(0, powerLevel));
+}
+
+/** Homing charge missile damage per hit. */
+export const PLAYER_MISSILE_HIT_DAMAGE = 5;
+
+/** Charge laser damage per throttled tick (see `LASER_HIT_INTERVAL_MS`). */
+export function laserTickDamage(powerLevel: number): number {
+  return 3 + Math.min(2, Math.max(0, powerLevel));
+}
+
+export const LASER_HIT_INTERVAL_MS = 88;
