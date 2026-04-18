@@ -147,6 +147,11 @@ export class GameScene extends Phaser.Scene {
     const width = this.scale.width;
     const height = this.scale.height;
 
+    // Fresh stage run (boss flags survive on the scene instance if shutdown order ever skips cleanup).
+    this.bossRoundScheduled = false;
+    this.bossSpawnPending = false;
+    this.teardownBoss();
+
     this.add.rectangle(width / 2, height / 2, width, height, 0x0d1520, 1).setDepth(0);
 
     const stage = getStageByIndex(runState.currentStageIndex);

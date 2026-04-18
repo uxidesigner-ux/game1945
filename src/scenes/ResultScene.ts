@@ -61,8 +61,20 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    const autoContinueSec = 5;
+    let autoSecondsLeft = autoContinueSec;
+    const autoLine = this.add
+      .text(width / 2, height * 0.635, `Next stage in ${autoSecondsLeft}s (ENTER / SPACE / NEXT to skip)`, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '16px',
+        color: '#9ec8e8',
+        align: 'center',
+        wordWrap: { width: width * 0.9 },
+      })
+      .setOrigin(0.5);
+
     this.add
-      .text(width / 2, height * 0.68, 'ENTER — next · T — title · tap buttons', {
+      .text(width / 2, height * 0.68, 'T — title · tap buttons', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '17px',
         color: '#7aa6c8',
@@ -71,7 +83,23 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    let autoTimer: Phaser.Time.TimerEvent | undefined;
+    let tickTimer: Phaser.Time.TimerEvent | undefined;
+    let navigated = false;
+
+    const cancelAutoContinue = (): void => {
+      tickTimer?.destroy();
+      tickTimer = undefined;
+      autoTimer?.destroy();
+      autoTimer = undefined;
+      autoLine.setVisible(false);
+    };
+
     const goNext = (): void => {
+      if (navigated) return;
+      navigated = true;
+      cancelAutoContinue();
+      void ensureAudioUnlocked();
       runState.currentStageIndex += 1;
       if (runState.currentStageIndex > 2) {
         this.scene.start(SceneKeys.MVPClear);
@@ -81,8 +109,29 @@ export class ResultScene extends Phaser.Scene {
     };
 
     const goTitle = (): void => {
+      if (navigated) return;
+      navigated = true;
+      cancelAutoContinue();
+      void ensureAudioUnlocked();
       this.scene.start(SceneKeys.Title);
     };
+
+    autoTimer = this.time.delayedCall(autoContinueSec * 1000, goNext);
+
+    // repeat = (n - 2): n−1 ticks ending at "1s" before delayedCall fires (avoids racing the last tick at t=n).
+    const tickRepeats = Math.max(0, autoContinueSec - 2);
+    if (tickRepeats > 0) {
+      tickTimer = this.time.addEvent({
+        delay: 1000,
+        repeat: tickRepeats,
+        callback: () => {
+          autoSecondsLeft -= 1;
+          if (autoSecondsLeft >= 1) {
+            autoLine.setText(`Next stage in ${autoSecondsLeft}s (ENTER / SPACE / NEXT to skip)`);
+          }
+        },
+      });
+    }
 
     const btnY = height * 0.8;
     const bw = 168;
@@ -113,23 +162,35 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    const wire = (fn: () => void): void => {
-      void ensureAudioUnlocked();
-      fn();
-    };
-    nextBg.on('pointerdown', () => wire(goNext));
-    nextTxt.on('pointerdown', () => wire(goNext));
-    titleBg.on('pointerdown', () => wire(goTitle));
-    titleTxt.on('pointerdown', () => wire(goTitle));
-
-    this.input.keyboard?.once('keydown-ENTER', () => {
-      void ensureAudioUnlocked();
+    const wireNext = (): void => {
       goNext();
-    });
-
-    this.input.keyboard?.once('keydown-T', () => {
-      void ensureAudioUnlocked();
+    };
+    const wireTitle = (): void => {
       goTitle();
+    };
+    nextBg.on('pointerdown', wireNext);
+    nextTxt.on('pointerdown', wireNext);
+    titleBg.on('pointerdown', wireTitle);
+    titleTxt.on('pointerdown', wireTitle);
+
+    let enterKey: Phaser.Input.Keyboard.Key | undefined;
+    let spaceKey: Phaser.Input.Keyboard.Key | undefined;
+    let tKey: Phaser.Input.Keyboard.Key | undefined;
+    const kb = this.input.keyboard;
+    if (kb) {
+      enterKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+      spaceKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+      tKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.T);
+      enterKey.once('down', goNext);
+      spaceKey.once('down', goNext);
+      tKey.once('down', goTitle);
+    }
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      cancelAutoContinue();
+      enterKey?.destroy();
+      spaceKey?.destroy();
+      tKey?.destroy();
     });
   }
 }
