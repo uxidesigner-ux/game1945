@@ -7,6 +7,7 @@ import {
   SFX,
   toggleSfxMuted,
 } from '../audio/proceduralSfx';
+import { GAME_HEIGHT, GAME_WIDTH } from '../core/gameDimensions';
 import { TextureKeys } from '../core/textureKeys';
 import { runState } from '../core/RunState';
 import { enemyGunnerByType, waveEnemySpawnByType } from '../data/enemies';
@@ -431,14 +432,14 @@ export class GameScene extends Phaser.Scene {
     this.teardownBoss();
     this.bossDef = def;
     this.bossHp = def.maxHp;
-    const w = this.scale.width;
-    const y = this.scale.height * def.enterYRatio;
-    this.bossSprite = this.physics.add.sprite(w / 2, y, def.textureKey);
+    const y = GAME_HEIGHT * def.enterYRatio;
+    this.bossSprite = this.physics.add.sprite(GAME_WIDTH / 2, y, def.textureKey);
     this.bossSprite.setDepth(46);
     const bBody = this.bossSprite.body as Phaser.Physics.Arcade.Body;
     bBody.setAllowGravity(false);
     bBody.setSize(def.bodySize.w, def.bodySize.h);
     bBody.setOffset(def.bodyOffset.x, def.bodyOffset.y);
+    this.bossSprite.setData('patrolVx', def.patrolSpeed);
 
     const t = this.time.now;
     this.bossNextAimed = t + 700;
@@ -505,12 +506,21 @@ export class GameScene extends Phaser.Scene {
   private updateBoss(time: number): void {
     if (!this.bossDef || !this.bossSprite?.active) return;
     const def = this.bossDef;
-    const w = this.scale.width;
-    const margin = 80;
-    let vx = this.bossSprite.getData('patrolVx') as number | undefined;
-    if (vx === undefined) vx = def.patrolSpeed;
-    if (this.bossSprite.x < margin) vx = Math.abs(def.patrolSpeed);
-    if (this.bossSprite.x > w - margin) vx = -Math.abs(def.patrolSpeed);
+    const w = GAME_WIDTH;
+    const pad = 36;
+    const gb = this.bossSprite.getBounds();
+    const halfW = gb.width * 0.5;
+    const minCx = pad + halfW;
+    const maxCx = w - pad - halfW;
+
+    this.bossSprite.x = Phaser.Math.Clamp(this.bossSprite.x, minCx, maxCx);
+
+    let vx = (this.bossSprite.getData('patrolVx') as number | undefined) ?? def.patrolSpeed;
+    if (this.bossSprite.x <= minCx) {
+      vx = Math.abs(def.patrolSpeed);
+    } else if (this.bossSprite.x >= maxCx) {
+      vx = -Math.abs(def.patrolSpeed);
+    }
     this.bossSprite.setData('patrolVx', vx);
     this.bossSprite.setVelocity(vx, 0);
 

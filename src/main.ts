@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { GAME_HEIGHT, GAME_WIDTH } from './core/gameDimensions';
 import { BootScene } from './scenes/BootScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { GameScene } from './scenes/GameScene';
@@ -9,8 +10,6 @@ import { ShipSelectScene } from './scenes/ShipSelectScene';
 import { TitleScene } from './scenes/TitleScene';
 
 /** Fixed vertical resolution; FIT scales to desktop window. */
-const GAME_WIDTH = 720;
-const GAME_HEIGHT = 1280;
 
 new Phaser.Game({
   type: Phaser.AUTO,
