@@ -432,11 +432,18 @@ export class GameScene extends Phaser.Scene {
     this.applyBossDamage(1);
   }
 
+  private applyPlayerHitFeedback(): void {
+    void SFX.playerHurt();
+    if (!this.paused) {
+      this.cameras.main.shake(180, 0.0065);
+    }
+  }
+
   private onPlayerRamBoss(): void {
     const p = this.player;
     if (!p || !this.bossSprite?.active) return;
     if (!p.tryBeginHit(this.time.now)) return;
-    void SFX.playerHurt();
+    this.applyPlayerHitFeedback();
     runState.lives -= 1;
     if (runState.lives <= 0) {
       this.scene.start(SceneKeys.GameOver);
@@ -661,7 +668,7 @@ export class GameScene extends Phaser.Scene {
     if (!p || !bullet.active) return;
     bullet.destroy();
     if (!p.tryBeginHit(this.time.now)) return;
-    void SFX.playerHurt();
+    this.applyPlayerHitFeedback();
     runState.lives -= 1;
     if (runState.lives <= 0) {
       this.scene.start(SceneKeys.GameOver);
@@ -693,7 +700,7 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     if (!p || !enemy.active) return;
     if (!p.tryBeginHit(this.time.now)) return;
-    void SFX.playerHurt();
+    this.applyPlayerHitFeedback();
     this.removeEnemy(enemy, false);
     runState.lives -= 1;
     if (runState.lives <= 0) {

@@ -18,6 +18,8 @@ npm run preview  # serve dist/
 
 **GitHub Pages** (project site `https://<user>.github.io/game1945/`): run `npm run build:gh-pages` so asset paths use base `/game1945/`. If the repo name differs, change `VITE_BASE` in `package.json` or run `VITE_BASE=/repo/ vite build` once after `tsc --noEmit`.
 
+**CI:** pushing to `main` or `cursor/phaser-mvp-scaffold` runs `.github/workflows/deploy-pages.yml` (`build:gh-pages` + upload). Enable **Settings → Pages → Build and deployment → GitHub Actions** once per repository.
+
 ## Controls
 
 | Key | Action |
