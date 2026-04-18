@@ -36,7 +36,15 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.62, 'ENTER — next stage · T — title', {
+      .text(width / 2, height * 0.59, `Run time ${formatTimeMs(runState.runElapsedMs)}`, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '17px',
+        color: '#7aa6c8',
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(width / 2, height * 0.68, 'ENTER — next stage · T — title', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '18px',
         color: '#7aa6c8',
