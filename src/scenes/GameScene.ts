@@ -65,6 +65,8 @@ export class GameScene extends Phaser.Scene {
   private bossFirePhase: number | null = null;
   /** Ensures a single boss spawn per GameScene after the wave script finishes. */
   private bossRoundScheduled = false;
+  /** True while deferred `spawnBoss` has not run yet; blocks premature stage clear. */
+  private bossSpawnPending = false;
 
   private paused = false;
   private pauseBg?: Phaser.GameObjects.Rectangle;
@@ -286,6 +288,8 @@ export class GameScene extends Phaser.Scene {
       this.hud = undefined;
       this.waveHint?.destroy();
       this.waveHint = undefined;
+      this.bossRoundScheduled = false;
+      this.bossSpawnPending = false;
     });
   }
 
@@ -766,14 +770,17 @@ export class GameScene extends Phaser.Scene {
     if (!this.waveDirector.doneSpawning || this.enemiesAlive > 0) return;
 
     if (this.bossSprite?.active) return;
+    if (this.bossSpawnPending) return;
 
     const stage = getStageByIndex(runState.currentStageIndex);
     const bossDef = getBossDefinition(stage?.bossId);
 
     if (bossDef && !this.bossRoundScheduled) {
       this.bossRoundScheduled = true;
+      this.bossSpawnPending = true;
       const def = bossDef;
       this.time.delayedCall(0, () => {
+        this.bossSpawnPending = false;
         if (!this.scene.isActive(SceneKeys.Game)) return;
         this.spawnBoss(def);
       });
@@ -872,7 +879,9 @@ export class GameScene extends Phaser.Scene {
     this.updateEnemyGunners(time);
     this.updateBoss(time);
 
-    this.waveDirector.trySpawn(time, (typ: WaveEnemyType) => this.spawnEnemy(typ));
+    this.waveDirector.trySpawn(time, (typ: WaveEnemyType) => {
+      this.spawnEnemy(typ);
+    });
 
     this.cullOffscreenBullets();
     this.cullOffscreenEnemyBullets();
@@ -1105,14 +1114,14 @@ export class GameScene extends Phaser.Scene {
     victims.forEach((e) => this.removeEnemy(e, true));
   }
 
-  private spawnEnemy(t: WaveEnemyType): boolean {
+  private spawnEnemy(t: WaveEnemyType): void {
     const width = this.scale.width;
     const margin = 48;
     const x = Phaser.Math.Between(margin, width - margin);
     const y = -46;
     const prof = waveEnemySpawnByType[t];
     const e = this.enemies.create(x, y, prof.textureKey) as Phaser.Physics.Arcade.Sprite | null;
-    if (!e) return false;
+    if (!e) return;
     if (t === 'raider') {
       e.setData('wobble', Phaser.Math.FloatBetween(0, Math.PI * 2));
     }
@@ -1124,7 +1133,6 @@ export class GameScene extends Phaser.Scene {
     body.setSize(prof.hitSize, prof.hitSize);
     body.setOffset(prof.offsetX, prof.offsetY);
     this.enemiesAlive += 1;
-    return true;
   }
 
   private cullOffscreenBullets(): void {

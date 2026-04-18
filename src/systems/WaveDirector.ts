@@ -13,7 +13,7 @@ export class WaveDirector {
     private readonly timingMul = 1,
   ) {}
 
-  trySpawn(time: number, spawn: (enemyType: WaveEnemyType) => boolean): void {
+  trySpawn(time: number, spawn: (enemyType: WaveEnemyType) => void): void {
     if (this.doneSpawning) return;
     if (!this.initialized) {
       const first = this.script.batches[0];
@@ -25,9 +25,9 @@ export class WaveDirector {
     if (!batch) return;
     if (time < this.nextSpawnAt) return;
 
-    if (!spawn(batch.enemyType)) {
-      return;
-    }
+    // Always advance the script even if Group.create() failed (pool full): otherwise
+    // doneSpawning never becomes true and the boss never appears.
+    spawn(batch.enemyType);
 
     this.spawnedInBatch += 1;
     if (this.spawnedInBatch >= batch.count) {
