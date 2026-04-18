@@ -132,4 +132,39 @@ export const SFX = {
       if (!sfxMuted) tone(620, 0.06, 0.028);
     }, 40);
   },
+
+  async stageClear(): Promise<void> {
+    await ensureAudioUnlocked();
+    if (sfxMuted) return;
+    tone(440, 0.08, 0.05);
+    window.setTimeout(() => {
+      if (!sfxMuted) tone(554, 0.08, 0.048);
+    }, 70);
+    window.setTimeout(() => {
+      if (!sfxMuted) tone(659, 0.13, 0.055);
+    }, 145);
+  },
+
+  async gameOver(): Promise<void> {
+    await ensureAudioUnlocked();
+    if (sfxMuted) return;
+    tone(200, 0.15, 0.068, 'triangle');
+    window.setTimeout(() => {
+      if (!sfxMuted) tone(130, 0.22, 0.055, 'triangle');
+    }, 115);
+  },
+
+  async demoClear(): Promise<void> {
+    await ensureAudioUnlocked();
+    if (sfxMuted) return;
+    const freqs = [523, 659, 784, 1046];
+    let delay = 0;
+    for (const f of freqs) {
+      const d = delay;
+      window.setTimeout(() => {
+        if (!sfxMuted) tone(f, 0.11, 0.05);
+      }, d);
+      delay += 92;
+    }
+  },
 };

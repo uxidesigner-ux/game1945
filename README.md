@@ -31,6 +31,8 @@ npm run preview  # serve dist/
 
 **High score:** best run score is saved in `localStorage` for this browser and shown on the title screen. Beating it shows **New best score!** on stage clear, game over, or demo complete.
 
+**Leaderboard:** top **5** scores (with date/time) from **game over** and **demo complete** runs only — listed on the title screen under “TOP RUNS”.
+
 **Touch (in-game):** drag a finger on the playfield to move (auto-fire while dragging). Top-right **PAUSE**; when paused, tap **RESUME** (or press P). Lower corners: hold **CHARGE**, tap **BOMB**. Touch steering uses the first finger only until you lift it, so you can bomb with another finger. Title: tap anywhere to continue (same as ENTER).
 
 **Result:** Enter — next · T — title · **NEXT** / **TITLE** buttons. **Game over:** Enter / T / tap — title. **Demo clear:** Enter / R · **TITLE** / **NEW RUN** buttons.

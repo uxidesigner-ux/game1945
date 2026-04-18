@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ensureAudioUnlocked } from '../audio/proceduralSfx';
+import { ensureAudioUnlocked, SFX } from '../audio/proceduralSfx';
 import { formatTimeMs } from '../core/formatTime';
 import { loadHighScore, recordHighScoreIfBest } from '../core/highScore';
 import { runState } from '../core/RunState';
@@ -12,6 +12,8 @@ export class ResultScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+
+    void SFX.stageClear();
 
     const prevBest = loadHighScore();
     recordHighScoreIfBest(runState.score);

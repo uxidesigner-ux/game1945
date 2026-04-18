@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ensureAudioUnlocked } from '../audio/proceduralSfx';
 import { loadHighScore } from '../core/highScore';
+import { formatLeaderboardShortDate, loadLeaderboard } from '../core/leaderboard';
 import { runState } from '../core/RunState';
 import {
   difficultyDisplay,
@@ -44,8 +45,37 @@ export class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    this.add
+      .text(width / 2, height * 0.49, 'TOP RUNS (this device)', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '13px',
+        color: '#6a8aad',
+      })
+      .setOrigin(0.5);
+
+    const board = loadLeaderboard();
+    const boardBody =
+      board.length === 0
+        ? 'No ranked runs yet — reach game over or demo complete.'
+        : board
+            .map(
+              (e, i) =>
+                `${i + 1}. ${e.score.toLocaleString()} · ${formatLeaderboardShortDate(e.at)}`,
+            )
+            .join('\n');
+    this.add
+      .text(width / 2, height * 0.515, boardBody, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '13px',
+        color: '#7aa6c8',
+        align: 'center',
+        lineSpacing: 3,
+        wordWrap: { width: width * 0.88 },
+      })
+      .setOrigin(0.5, 0);
+
     const hint = this.add
-      .text(width / 2, height * 0.58, '', {
+      .text(width / 2, height * 0.76, '', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '20px',
         color: '#ffd27f',

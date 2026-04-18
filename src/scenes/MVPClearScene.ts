@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { ensureAudioUnlocked } from '../audio/proceduralSfx';
+import { ensureAudioUnlocked, SFX } from '../audio/proceduralSfx';
 import { formatTimeMs } from '../core/formatTime';
 import { loadHighScore, recordHighScoreIfBest } from '../core/highScore';
+import { submitRunToLeaderboard } from '../core/leaderboard';
 import { runState } from '../core/RunState';
 import { SceneKeys } from './sceneKeys';
 
@@ -15,7 +16,10 @@ export class MVPClearScene extends Phaser.Scene {
 
     const prevBest = loadHighScore();
     recordHighScoreIfBest(runState.score);
+    submitRunToLeaderboard(runState.score);
     const newRecord = runState.score > prevBest;
+
+    void SFX.demoClear();
 
     this.add
       .text(width / 2, height * 0.28, 'DEMO COMPLETE', {
