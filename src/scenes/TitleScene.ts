@@ -1,4 +1,10 @@
 import Phaser from 'phaser';
+import { runState } from '../core/RunState';
+import {
+  difficultyDisplay,
+  loadDifficultyFromStorage,
+  persistDifficultyToStorage,
+} from '../data/difficulty';
 import { SceneKeys } from './sceneKeys';
 
 export class TitleScene extends Phaser.Scene {
@@ -8,6 +14,8 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+
+    runState.difficulty = loadDifficultyFromStorage();
 
     this.add
       .text(width / 2, height * 0.28, 'VORTEX STRIKERS', {
@@ -26,12 +34,19 @@ export class TitleScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const hint = this.add
-      .text(width / 2, height * 0.55, 'Press ENTER — Ship select', {
+      .text(width / 2, height * 0.52, '', {
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '22px',
+        fontSize: '20px',
         color: '#ffd27f',
+        align: 'center',
       })
       .setOrigin(0.5);
+
+    const refreshHint = (): void => {
+      const d = difficultyDisplay[runState.difficulty];
+      hint.setText(`Press ENTER — Ship select\nH — Difficulty: ${d}`);
+    };
+    refreshHint();
 
     this.tweens.add({
       targets: hint,
@@ -41,7 +56,18 @@ export class TitleScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    this.input.keyboard?.once('keydown-ENTER', () => {
+    const kb = this.input.keyboard;
+    const onDifficulty = (): void => {
+      runState.difficulty = runState.difficulty === 'normal' ? 'hard' : 'normal';
+      persistDifficultyToStorage(runState.difficulty);
+      refreshHint();
+    };
+    kb?.on('keydown-H', onDifficulty);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      kb?.off('keydown-H', onDifficulty);
+    });
+
+    kb?.once('keydown-ENTER', () => {
       this.scene.start(SceneKeys.ShipSelect);
     });
   }

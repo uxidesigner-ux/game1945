@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { runState } from '../core/RunState';
+import { difficultyDisplay } from '../data/difficulty';
 import { allShips, getShip } from '../data/ships';
 import type { ShipId } from '../data/ships/types';
 import { SceneKeys } from './sceneKeys';
@@ -20,7 +21,15 @@ export class ShipSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const startY = height * 0.28;
+    this.add
+      .text(width / 2, height * 0.18, `Difficulty: ${difficultyDisplay[runState.difficulty]}`, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '17px',
+        color: '#7aa6c8',
+      })
+      .setOrigin(0.5);
+
+    const startY = height * 0.3;
     const step = 140;
 
     allShips.forEach((ship, index) => {

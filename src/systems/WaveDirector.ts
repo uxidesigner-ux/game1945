@@ -7,13 +7,17 @@ export class WaveDirector {
   private nextSpawnAt = 0;
   private initialized = false;
 
-  constructor(private readonly script: WaveScript) {}
+  constructor(
+    private readonly script: WaveScript,
+    /** Multiplier on all script delays (lower = faster spawns). */
+    private readonly timingMul = 1,
+  ) {}
 
   trySpawn(time: number, spawn: (enemyType: WaveEnemyType) => void): void {
     if (this.doneSpawning) return;
     if (!this.initialized) {
       const first = this.script.batches[0];
-      this.nextSpawnAt = time + (first?.delayMs ?? 0);
+      this.nextSpawnAt = time + (first?.delayMs ?? 0) * this.timingMul;
       this.initialized = true;
     }
 
@@ -29,10 +33,10 @@ export class WaveDirector {
       this.spawnedInBatch = 0;
       const nextBatch = this.script.batches[this.batchIndex];
       if (nextBatch) {
-        this.nextSpawnAt = time + nextBatch.delayMs;
+        this.nextSpawnAt = time + nextBatch.delayMs * this.timingMul;
       }
     } else {
-      this.nextSpawnAt = time + batch.intervalMs;
+      this.nextSpawnAt = time + batch.intervalMs * this.timingMul;
     }
   }
 

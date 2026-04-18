@@ -18,6 +18,7 @@ import type { PrimaryPattern } from '../data/ships/combatStats';
 import { resolvePrimaryStats, type ResolvedPrimary } from '../data/ships/powerLevel';
 import { OrdnanceKind, specialWeaponStats } from '../data/ships/specialWeapons';
 import type { ShipId } from '../data/ships/types';
+import { difficultyTuning } from '../data/difficulty';
 import { getStageByIndex } from '../data/stages';
 import { getWaveScript } from '../data/waves';
 import type { WaveEnemyType } from '../data/waves/types';
@@ -66,6 +67,7 @@ export class GameScene extends Phaser.Scene {
   private pauseTxt?: Phaser.GameObjects.Text;
   private keyP?: Phaser.Input.Keyboard.Key;
   private keyV?: Phaser.Input.Keyboard.Key;
+  private diffTune = difficultyTuning(runState.difficulty);
 
   constructor() {
     super(SceneKeys.Game);
@@ -79,7 +81,11 @@ export class GameScene extends Phaser.Scene {
     this.add.rectangle(width / 2, height / 2, width, height, 0x0d1520, 1).setDepth(0);
 
     const stage = getStageByIndex(runState.currentStageIndex);
-    this.waveDirector = new WaveDirector(getWaveScript(stage?.waveScriptId ?? 'stage1_waves'));
+    this.diffTune = difficultyTuning(runState.difficulty);
+    this.waveDirector = new WaveDirector(
+      getWaveScript(stage?.waveScriptId ?? 'stage1_waves'),
+      this.diffTune.waveTimingMul,
+    );
 
     this.playerBullets = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Sprite,
@@ -297,8 +303,8 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    const aimedMs = def.aimedIntervalMs[ph];
-    const burstMs = def.burstIntervalMs[ph];
+    const aimedMs = def.aimedIntervalMs[ph] * this.diffTune.bossIntervalMul;
+    const burstMs = def.burstIntervalMs[ph] * this.diffTune.bossIntervalMul;
     const burstN = def.burstCount[ph];
     const burstSpread = def.burstSpreadDeg[ph];
 
@@ -717,15 +723,19 @@ export class GameScene extends Phaser.Scene {
       if (!e.active) continue;
       const roleKey = (e.getData('enemyRole') as WaveEnemyType) ?? 'grunt';
       const g = enemyGunnerByType[roleKey] ?? enemyGunnerByType.grunt;
+      const fm = this.diffTune.enemyFireMul;
       let next = e.getData('nextEnemyShot') as number | undefined;
       if (next === undefined) {
-        e.setData('nextEnemyShot', time + Phaser.Math.Between(g.firstDelayMin, g.firstDelayMax));
+        e.setData(
+          'nextEnemyShot',
+          time + Phaser.Math.Between(g.firstDelayMin, g.firstDelayMax) * fm,
+        );
         continue;
       }
       if (time < next) continue;
       const ang = Phaser.Math.Angle.Between(e.x, e.y + 12, px, py);
       this.spawnEnemyBullet(e.x, e.y + 14, ang, g.shotSpeed);
-      e.setData('nextEnemyShot', time + Phaser.Math.Between(g.repeatMin, g.repeatMax));
+      e.setData('nextEnemyShot', time + Phaser.Math.Between(g.repeatMin, g.repeatMax) * fm);
     }
   }
 

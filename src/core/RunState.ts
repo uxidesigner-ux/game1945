@@ -1,7 +1,10 @@
+import type { DifficultyId } from '../data/difficulty';
 import type { ShipId } from '../data/ships/types';
 
 /** Per-run state passed between scenes (lives, bombs, score, selection). */
 export class RunState {
+  /** Set from title; not cleared by `resetForNewRun`. */
+  difficulty: DifficultyId = 'normal';
   lives = 3;
   bombs = 2;
   score = 0;

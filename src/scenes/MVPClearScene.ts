@@ -12,7 +12,7 @@ export class MVPClearScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     this.add
-      .text(width / 2, height * 0.32, 'MVP CLEAR', {
+      .text(width / 2, height * 0.3, 'DEMO COMPLETE', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '38px',
         color: '#ffd27f',
@@ -20,9 +20,9 @@ export class MVPClearScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.44, 'VORTEX STRIKERS — demo run complete.', {
+      .text(width / 2, height * 0.4, 'All demo stages cleared. Thanks for playing.', {
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '19px',
+        fontSize: '18px',
         color: '#e8f4ff',
         align: 'center',
         wordWrap: { width: width * 0.85 },
@@ -30,7 +30,7 @@ export class MVPClearScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.54, `Final score ${runState.score.toLocaleString()}`, {
+      .text(width / 2, height * 0.5, `Final score ${runState.score.toLocaleString()}`, {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '22px',
         color: '#cfe9ff',
@@ -38,7 +38,7 @@ export class MVPClearScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.62, `Total run ${formatTimeMs(runState.runElapsedMs)}`, {
+      .text(width / 2, height * 0.58, `Total run ${formatTimeMs(runState.runElapsedMs)}`, {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '18px',
         color: '#8fb8d9',
@@ -46,15 +46,22 @@ export class MVPClearScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.74, 'ENTER — title', {
+      .text(width / 2, height * 0.7, 'ENTER — title · R — new run (ship select)', {
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '18px',
+        fontSize: '17px',
         color: '#7aa6c8',
+        align: 'center',
+        wordWrap: { width: width * 0.88 },
       })
       .setOrigin(0.5);
 
-    this.input.keyboard?.once('keydown-ENTER', () => {
+    const toTitle = (): void => {
       this.scene.start(SceneKeys.Title);
-    });
+    };
+    const toSelect = (): void => {
+      this.scene.start(SceneKeys.ShipSelect);
+    };
+    this.input.keyboard?.once('keydown-ENTER', toTitle);
+    this.input.keyboard?.once('keydown-R', toSelect);
   }
 }

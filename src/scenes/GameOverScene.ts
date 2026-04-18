@@ -56,15 +56,17 @@ export class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.76, 'ENTER — title', {
+      .text(width / 2, height * 0.76, 'ENTER / T — title', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '18px',
         color: '#5c7a92',
       })
       .setOrigin(0.5);
 
-    this.input.keyboard?.once('keydown-ENTER', () => {
+    const goTitle = (): void => {
       this.scene.start(SceneKeys.Title);
-    });
+    };
+    this.input.keyboard?.once('keydown-ENTER', goTitle);
+    this.input.keyboard?.once('keydown-T', goTitle);
   }
 }

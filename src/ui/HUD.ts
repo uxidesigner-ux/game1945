@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { RunState } from '../core/RunState';
+import { difficultyDisplay } from '../data/difficulty';
 import { getShip } from '../data/ships';
 import { getStageByIndex } from '../data/stages';
 
@@ -81,9 +82,10 @@ export class HUD {
 
   sync(state: RunState, sfxMuted: boolean): void {
     const stage = getStageByIndex(state.currentStageIndex);
+    const diff = difficultyDisplay[state.difficulty];
     const stageLine = stage
-      ? `${stage.displayName}`
-      : `Stage ${state.currentStageIndex}`;
+      ? `${stage.displayName} · ${diff}`
+      : `Stage ${state.currentStageIndex} · ${diff}`;
     this.texts.stage.setText(stageLine);
 
     const ship = getShip(state.selectedShipId);
