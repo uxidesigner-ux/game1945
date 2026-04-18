@@ -6,7 +6,7 @@ export const siegeCarrierBoss: BossDefinition = {
   id: 'siege_carrier',
   displayName: 'Siege Carrier',
   textureKey: TextureKeys.BossSiegeCarrier,
-  maxHp: 220,
+  maxHp: 22_000,
   scoreReward: SCORE_BOSS_SIEGE_CARRIER,
   enterYRatio: 0.13,
   patrolSpeed: 68,

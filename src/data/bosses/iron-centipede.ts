@@ -6,7 +6,7 @@ export const ironCentipedeBoss: BossDefinition = {
   id: 'iron_centipede',
   displayName: 'Iron Centipede',
   textureKey: TextureKeys.BossIronCentipede,
-  maxHp: 280,
+  maxHp: 28_000,
   scoreReward: SCORE_BOSS_IRON_CENTIPEDE,
   enterYRatio: 0.11,
   patrolSpeed: 92,
