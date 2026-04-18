@@ -1,6 +1,6 @@
 # VORTEX STRIKERS
 
-Desktop / mobile-friendly vertical shooter (Phaser 3 + Vite + TypeScript). Fixed logical size **720×1280**, scaled with `FIT`.
+Desktop / mobile-friendly vertical shooter (Phaser 3 + Vite + TypeScript). Fixed logical size **720×1280**, scaled with `FIT`. With **prefers-reduced-motion: reduce**, camera shake, boss screen flash, and the title hint pulse are toned down or disabled.
 
 ## Run locally
 

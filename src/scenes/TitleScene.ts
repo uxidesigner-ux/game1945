@@ -6,6 +6,7 @@ import {
   formatLeaderboardShortDate,
   loadLeaderboard,
 } from '../core/leaderboard';
+import { prefersReducedMotion } from '../core/motionPreference';
 import { runState } from '../core/RunState';
 import {
   difficultyDisplay,
@@ -93,13 +94,25 @@ export class TitleScene extends Phaser.Scene {
     };
     refreshHint();
 
-    this.tweens.add({
-      targets: hint,
-      alpha: 0.45,
-      duration: 700,
-      yoyo: true,
-      repeat: -1,
-    });
+    if (prefersReducedMotion()) {
+      hint.setAlpha(0.92);
+    } else {
+      this.tweens.add({
+        targets: hint,
+        alpha: 0.45,
+        duration: 700,
+        yoyo: true,
+        repeat: -1,
+      });
+    }
+
+    this.add
+      .text(width / 2, height * 0.94, `v${__APP_VERSION__}`, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '12px',
+        color: '#4a6078',
+      })
+      .setOrigin(0.5);
 
     const kb = this.input.keyboard;
     const onDifficulty = (): void => {

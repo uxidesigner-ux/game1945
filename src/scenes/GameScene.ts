@@ -18,6 +18,7 @@ import type { PrimaryPattern } from '../data/ships/combatStats';
 import { resolvePrimaryStats, type ResolvedPrimary } from '../data/ships/powerLevel';
 import { OrdnanceKind, specialWeaponStats } from '../data/ships/specialWeapons';
 import type { ShipId } from '../data/ships/types';
+import { prefersReducedMotion } from '../core/motionPreference';
 import { difficultyTuning } from '../data/difficulty';
 import { getStageByIndex } from '../data/stages';
 import { getWaveScript } from '../data/waves';
@@ -434,7 +435,7 @@ export class GameScene extends Phaser.Scene {
 
   private applyPlayerHitFeedback(): void {
     void SFX.playerHurt();
-    if (!this.paused) {
+    if (!this.paused && !prefersReducedMotion()) {
       this.cameras.main.shake(180, 0.0065);
     }
   }
@@ -547,7 +548,9 @@ export class GameScene extends Phaser.Scene {
   private playBossPhaseShift(phase: number): void {
     void phase;
     void SFX.bossPhase();
-    this.cameras.main.flash(160, 255, 210, 140);
+    if (!prefersReducedMotion()) {
+      this.cameras.main.flash(160, 255, 210, 140);
+    }
     const b = this.bossSprite;
     if (b?.active) {
       b.setTint(0xffc4a8);
