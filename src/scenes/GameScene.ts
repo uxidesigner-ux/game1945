@@ -833,6 +833,11 @@ export class GameScene extends Phaser.Scene {
 
     this.player?.refreshBlink(time);
 
+    // If Phaser's Key still reports down, keep latch in sync (avoids stuck "not firing" when
+    // keydown-SPACE was missed but isDown is true, or after brief internal glitches).
+    if (this.keySpace?.isDown) {
+      this.spaceFireHeld = true;
+    }
     const wantFire = this.spaceFireHeld || touchSteering || !!this.keySpace?.isDown;
     if (wantFire && time - this.lastFireTime >= primary.cooldownMs) {
       this.firePrimary(primary);
