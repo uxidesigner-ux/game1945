@@ -75,12 +75,14 @@ export class MVPClearScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const toTitle = (): void => {
-      this.scene.start(SceneKeys.Title);
+    const go = (key: string): void => {
+      const scenePlugin = this.scene;
+      window.setTimeout(() => {
+        scenePlugin.start(key);
+      }, 0);
     };
-    const toSelect = (): void => {
-      this.scene.start(SceneKeys.ShipSelect);
-    };
+    const toTitle = (): void => { go(SceneKeys.Title); };
+    const toSelect = (): void => { go(SceneKeys.ShipSelect); };
 
     const btnY = height * 0.8;
     const bw = 188;

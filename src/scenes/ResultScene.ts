@@ -119,6 +119,13 @@ export class ResultScene extends Phaser.Scene {
       autoLine.setVisible(false);
     };
 
+    const go = (key: string): void => {
+      const scenePlugin = this.scene;
+      window.setTimeout(() => {
+        scenePlugin.start(key);
+      }, 0);
+    };
+
     const advanceToNextStage = (): void => {
       if (navigated) return;
       navigated = true;
@@ -131,10 +138,7 @@ export class ResultScene extends Phaser.Scene {
       }
       runState.currentStageIndex += 1;
       const nextKey = runState.currentStageIndex > 5 ? SceneKeys.MVPClear : SceneKeys.Game;
-      // Use native setTimeout to bypass Phaser scene-status guards entirely.
-      // delayedCall(0,...) fires on the next Phaser frame when status may no
-      // longer be RUNNING, causing scene.start() to silently no-op.
-      window.setTimeout(() => { this.scene.start(nextKey); }, 0);
+      go(nextKey);
     };
 
     const goTitle = (): void => {
@@ -142,7 +146,7 @@ export class ResultScene extends Phaser.Scene {
       navigated = true;
       cancelTimers();
       void ensureAudioUnlocked();
-      window.setTimeout(() => { this.scene.start(SceneKeys.Title); }, 0);
+      go(SceneKeys.Title);
     };
 
     autoTimer = this.time.delayedCall(autoContinueSec * 1000, advanceToNextStage);

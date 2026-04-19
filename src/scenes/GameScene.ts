@@ -269,10 +269,10 @@ export class GameScene extends Phaser.Scene {
     this.input.on('pointermove', this.onPointerMoveGame);
     this.input.on('pointerup', this.onPointerUpGame);
 
-    kb.on('keydown-R', () => this.scene.start(SceneKeys.Result));
-    kb.on('keydown-G', () => this.scene.start(SceneKeys.GameOver));
-    kb.on('keydown-M', () => this.scene.start(SceneKeys.MVPClear));
-    kb.on('keydown-T', () => this.scene.start(SceneKeys.Title));
+    kb.on('keydown-R', () => this.switchScene(SceneKeys.Result));
+    kb.on('keydown-G', () => this.switchScene(SceneKeys.GameOver));
+    kb.on('keydown-M', () => this.switchScene(SceneKeys.MVPClear));
+    kb.on('keydown-T', () => this.switchScene(SceneKeys.Title));
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.off('pointerdown', this.onPointerDownGame);
@@ -763,14 +763,17 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Never call `scene.start` from inside Arcade overlap/collision — it can leave the sim half-torn.
-   * Uses window.setTimeout to bypass Phaser scene-status guards that can silently block the transition.
-   */
+  private switchScene(key: SceneKey, delayMs = 16): void {
+    const scenePlugin = this.scene;
+    window.setTimeout(() => {
+      scenePlugin.start(key);
+    }, delayMs);
+  }
+
   private deferSceneStart(key: SceneKey, delayMs = 16): void {
     if (this.sceneTransitioning) return;
     this.sceneTransitioning = true;
-    window.setTimeout(() => { this.scene.start(key); }, delayMs);
+    this.switchScene(key, delayMs);
   }
 
   private triggerGameOver(): void {
@@ -807,7 +810,7 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: dimmer, alpha: 0.60, duration: 320, ease: 'Cubic.Out' });
     this.tweens.add({ targets: goText, alpha: 1, duration: 400, delay: 120, ease: 'Cubic.Out' });
 
-    window.setTimeout(() => { this.scene.start(SceneKeys.GameOver); }, 900);
+    this.switchScene(SceneKeys.GameOver, 900);
   }
 
   private rollPickupsOnKill(x: number, y: number): void {

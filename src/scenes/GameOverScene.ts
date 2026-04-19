@@ -149,22 +149,26 @@ export class GameOverScene extends Phaser.Scene {
     kb?.once('keydown-ENTER', () => { void ensureAudioUnlocked(); this.doContinue(); });
   }
 
+  private go(key: string): void {
+    const scenePlugin = this.scene;
+    window.setTimeout(() => {
+      scenePlugin.start(key);
+    }, 0);
+  }
+
   private doContinue(): void {
-    if (!this.scene.isActive(SceneKeys.GameOver)) return;
     // Resume same stage: restore lives & bombs, keep score/power/stage
     runState.lives = 2;
     runState.bombs = 2;
-    this.scene.start(SceneKeys.Game);
+    this.go(SceneKeys.Game);
   }
 
   private doRetry(): void {
-    if (!this.scene.isActive(SceneKeys.GameOver)) return;
     runState.resetForNewRun(runState.selectedShipId);
-    this.scene.start(SceneKeys.ShipSelect);
+    this.go(SceneKeys.ShipSelect);
   }
 
   private doLobby(): void {
-    if (!this.scene.isActive(SceneKeys.GameOver)) return;
-    this.scene.start(SceneKeys.Title);
+    this.go(SceneKeys.Title);
   }
 }
