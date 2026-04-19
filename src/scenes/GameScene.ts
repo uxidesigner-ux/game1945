@@ -13,7 +13,7 @@ import { runState } from '../core/RunState';
 import { enemyGunnerByType, waveEnemySpawnByType } from '../data/enemies';
 import { bossPhaseIndex, getBossDefinition, type BossDefinition } from '../data/bosses';
 import { PickupKind, PICKUP_CHANCE_ENERGY_CORE, PICKUP_CHANCE_POWER } from '../data/pickups';
-import { energyCoreScoreAt, SCORE_GRUNT_KILL } from '../data/scoring';
+import { energyCoreScoreAt, stageKillScore } from '../data/scoring';
 import {
   getShipCombat,
   LASER_HIT_INTERVAL_MS,
@@ -82,6 +82,12 @@ export class GameScene extends Phaser.Scene {
   private keyP?: Phaser.Input.Keyboard.Key;
   private keyV?: Phaser.Input.Keyboard.Key;
   private diffTune = difficultyTuning(runState.difficulty);
+
+  /** Kill combo chain tracking */
+  private comboKills = 0;
+  private comboLastKillTime = 0;
+  private readonly COMBO_WINDOW_MS = 2800;
+  private comboLabel?: Phaser.GameObjects.Text;
 
   /** First finger on playfield (touch only); second finger ignored until release. */
   private touchSteerPointerId: number | null = null;
@@ -771,12 +777,52 @@ export class GameScene extends Phaser.Scene {
     if (!enemy.active) return;
     const { x, y } = enemy;
     if (awardScore) {
-      runState.score += SCORE_GRUNT_KILL;
+      const comboMul = this.advanceCombo();
+      const base = stageKillScore(runState.currentStageIndex);
+      runState.score += Math.round(base * comboMul);
       this.rollPickupsOnKill(x, y);
     }
     enemy.destroy();
     this.enemiesAlive = Math.max(0, this.enemiesAlive - 1);
     this.tryCompleteWave();
+  }
+
+  private advanceCombo(): number {
+    const now = this.time.now;
+    if (now - this.comboLastKillTime > this.COMBO_WINDOW_MS) {
+      this.comboKills = 0;
+    }
+    this.comboKills += 1;
+    this.comboLastKillTime = now;
+
+    let mul = 1;
+    let label = '';
+    if (this.comboKills >= 20) { mul = 3; label = `CHAIN ×3!! (${this.comboKills})`; }
+    else if (this.comboKills >= 10) { mul = 2; label = `CHAIN ×2! (${this.comboKills})`; }
+    else if (this.comboKills >= 5)  { mul = 1.5; label = `CHAIN ×1.5 (${this.comboKills})`; }
+
+    if (label) this.showComboLabel(label);
+    return mul;
+  }
+
+  private showComboLabel(text: string): void {
+    if (this.comboLabel?.active) this.comboLabel.destroy();
+    const w = this.scale.width;
+    this.comboLabel = this.add.text(w / 2, this.scale.height * 0.15, text, {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '22px',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(200);
+    this.tweens.add({
+      targets: this.comboLabel,
+      y: this.scale.height * 0.11,
+      alpha: 0,
+      duration: 1200,
+      ease: 'Cubic.Out',
+      onComplete: () => this.comboLabel?.destroy(),
+    });
   }
 
   private onBulletHitEnemy(bullet: Phaser.Physics.Arcade.Sprite, enemy: Phaser.Physics.Arcade.Sprite): void {
@@ -1088,7 +1134,8 @@ export class GameScene extends Phaser.Scene {
       if (!e.active) continue;
       const roleKey = (e.getData('enemyRole') as WaveEnemyType) ?? 'grunt';
       const g = enemyGunnerByType[roleKey] ?? enemyGunnerByType.grunt;
-      const fm = this.diffTune.enemyFireMul;
+      const stageFire = (e.getData('stageFireMul') as number | undefined) ?? 1;
+      const fm = this.diffTune.enemyFireMul * stageFire;
       let next = e.getData('nextEnemyShot') as number | undefined;
       if (next === undefined) {
         e.setData(
@@ -1177,6 +1224,15 @@ export class GameScene extends Phaser.Scene {
     victims.forEach((e) => this.removeEnemy(e, true));
   }
 
+  /** Progressive per-stage enemy scaling. Stage index is 1-based. */
+  private static stageScale(stageIndex: number): { hp: number; speed: number; fireMul: number } {
+    const HP =    [1.0, 1.4, 2.0, 2.8, 4.0];
+    const SPD =   [1.0, 1.1, 1.22, 1.36, 1.50];
+    const FIRE =  [1.0, 0.90, 0.78, 0.66, 0.54];
+    const idx = Math.max(0, Math.min(4, stageIndex - 1));
+    return { hp: HP[idx] ?? 1, speed: SPD[idx] ?? 1, fireMul: FIRE[idx] ?? 1 };
+  }
+
   private spawnEnemy(t: WaveEnemyType): void {
     const width = this.scale.width;
     const margin = 48;
@@ -1191,9 +1247,11 @@ export class GameScene extends Phaser.Scene {
     }
     e.setDepth(prof.depth);
     e.setData('enemyRole', t);
-    const hpMul = runState.currentStageIndex >= 2 ? 1.38 : 1;
-    e.setData('hp', Math.max(1, Math.round(prof.maxHp * hpMul)));
-    e.setVelocity(0, Phaser.Math.Between(prof.vyMin, prof.vyMax));
+    const scale = GameScene.stageScale(runState.currentStageIndex);
+    e.setData('hp', Math.max(1, Math.round(prof.maxHp * scale.hp)));
+    const vy = Phaser.Math.Between(prof.vyMin, prof.vyMax) * scale.speed;
+    e.setVelocity(0, vy);
+    e.setData('stageFireMul', scale.fireMul);
     const body = e.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
     body.setSize(prof.hitSize, prof.hitSize);

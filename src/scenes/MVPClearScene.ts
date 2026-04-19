@@ -22,15 +22,15 @@ export class MVPClearScene extends Phaser.Scene {
     void SFX.demoClear();
 
     this.add
-      .text(width / 2, height * 0.28, 'DEMO COMPLETE', {
+      .text(width / 2, height * 0.28, 'ALL CLEAR!!', {
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '38px',
-        color: '#ffd27f',
+        fontSize: '42px',
+        color: '#ffd700',
       })
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.38, 'All demo stages cleared. Thanks for playing.', {
+      .text(width / 2, height * 0.38, 'All 5 stages cleared. Mission complete!', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '18px',
         color: '#e8f4ff',

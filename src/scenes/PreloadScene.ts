@@ -177,5 +177,65 @@ export class PreloadScene extends Phaser.Scene {
       168,
       52,
     );
+
+    // Boss 3: Iron Basilisk — wide armoured lizard shape
+    paint(
+      (g) => {
+        g.fillStyle(0x2e6b44, 1);
+        g.fillRoundedRect(6, 18, 148, 32, 6);
+        g.fillStyle(0x1d4a2e, 1);
+        g.fillRoundedRect(22, 10, 116, 20, 4);
+        g.fillStyle(0x52b86a, 1);
+        for (let i = 0; i < 5; i++) {
+          g.fillRoundedRect(22 + i * 24, 6, 14, 10, 2);
+        }
+        g.fillStyle(0xff4444, 1);
+        g.fillCircle(20, 28, 5);
+        g.fillCircle(140, 28, 5);
+      },
+      TextureKeys.BossIronBasilisk,
+      160,
+      60,
+    );
+
+    // Boss 4: Storm Raptor — sleek swept-wing fighter silhouette
+    paint(
+      (g) => {
+        g.fillStyle(0x3a3a8a, 1);
+        g.fillTriangle(80, 0, 10, 48, 150, 48);
+        g.fillStyle(0x2222aa, 1);
+        g.fillRoundedRect(56, 14, 48, 28, 4);
+        g.fillStyle(0x66aaff, 1);
+        g.fillCircle(80, 20, 7);
+        g.fillStyle(0xff6600, 1);
+        g.fillCircle(30, 46, 5);
+        g.fillCircle(130, 46, 5);
+      },
+      TextureKeys.BossStormRaptor,
+      160,
+      56,
+    );
+
+    // Boss 5: Overlord — massive fortress with dual cannons
+    paint(
+      (g) => {
+        g.fillStyle(0x5a1a1a, 1);
+        g.fillRoundedRect(4, 24, 184, 40, 6);
+        g.fillStyle(0x3d0f0f, 1);
+        g.fillRoundedRect(20, 12, 152, 22, 4);
+        g.fillStyle(0x8a2222, 1);
+        g.fillRoundedRect(72, 4, 48, 16, 3);
+        g.fillStyle(0xff2222, 1);
+        g.fillCircle(40, 38, 7);
+        g.fillCircle(152, 38, 7);
+        g.fillStyle(0xff8800, 0.9);
+        g.fillCircle(96, 20, 9);
+        g.fillStyle(0xffcc00, 1);
+        g.fillCircle(96, 20, 4);
+      },
+      TextureKeys.BossOverlord,
+      192,
+      72,
+    );
   }
 }

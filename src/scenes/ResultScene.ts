@@ -70,10 +70,25 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    // Show inter-stage rewards if not last stage
+    if (runState.currentStageIndex < 5) {
+      const bonusParts: string[] = ['+1 BOMB'];
+      if (runState.currentStageIndex === 3 || runState.currentStageIndex === 5) {
+        bonusParts.push('+1 LIFE');
+      }
+      this.add
+        .text(width / 2, height * 0.675, `BONUS  ${bonusParts.join('  ')}`, {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '18px',
+          color: '#a8e6a3',
+        })
+        .setOrigin(0.5);
+    }
+
     const autoContinueSec = 5;
     let autoSecondsLeft = autoContinueSec;
     const autoLine = this.add
-      .text(width / 2, height * 0.635, `Next stage in ${autoSecondsLeft}s (ENTER / SPACE / NEXT to skip)`, {
+      .text(width / 2, height * 0.725, `Next stage in ${autoSecondsLeft}s (ENTER / SPACE / NEXT to skip)`, {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '16px',
         color: '#9ec8e8',
@@ -83,7 +98,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.68, 'T — title · tap buttons', {
+      .text(width / 2, height * 0.77, 'T — title · tap buttons', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '17px',
         color: '#7aa6c8',
@@ -109,8 +124,13 @@ export class ResultScene extends Phaser.Scene {
       navigated = true;
       cancelTimers();
       void ensureAudioUnlocked();
+      // Inter-stage rewards
+      runState.bombs = Math.min(3, runState.bombs + 1);
+      if (runState.currentStageIndex === 3 || runState.currentStageIndex === 5) {
+        runState.lives = Math.min(5, runState.lives + 1);
+      }
       runState.currentStageIndex += 1;
-      const nextKey = runState.currentStageIndex > 2 ? SceneKeys.MVPClear : SceneKeys.Game;
+      const nextKey = runState.currentStageIndex > 5 ? SceneKeys.MVPClear : SceneKeys.Game;
       // Defer past this timer callback / input so ScenePlugin is in a stable state.
       this.time.delayedCall(0, () => {
         if (!this.scene.isActive(SceneKeys.Result)) return;

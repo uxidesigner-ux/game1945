@@ -1,4 +1,4 @@
-export type BossId = 'siege_carrier' | 'iron_centipede';
+export type BossId = 'siege_carrier' | 'iron_centipede' | 'iron_basilisk' | 'storm_raptor' | 'overlord';
 
 /** Data-only boss tuning; movement and firing are interpreted by GameScene. */
 export interface BossDefinition {
