@@ -120,9 +120,11 @@ export class ResultScene extends Phaser.Scene {
     };
 
     const go = (key: string): void => {
-      const scenePlugin = this.scene;
+      const manager = (this.game.scene as any);
+      const fromKey = this.scene.key;
       window.setTimeout(() => {
-        scenePlugin.start(key);
+        manager.stop(fromKey);
+        manager.start(key);
       }, 0);
     };
 

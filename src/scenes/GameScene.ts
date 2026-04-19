@@ -59,6 +59,8 @@ export class GameScene extends Phaser.Scene {
   };
   private lastFireTime = -99999;
   private enemiesAlive = 0;
+  /** Timestamp for next periodic tryCompleteWave poll (safety net). */
+  private waveCompleteCheckAt = 0;
   private waveHint?: Phaser.GameObjects.Text;
 
   private bossDef?: BossDefinition;
@@ -162,6 +164,8 @@ export class GameScene extends Phaser.Scene {
     this.sceneTransitioning = false;
     this.comboKills = 0;
     this.comboLastKillTime = 0;
+    this.enemiesAlive = 0;
+    this.waveCompleteCheckAt = 0;
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x0d1520, 1).setDepth(0);
 
@@ -764,10 +768,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private switchScene(key: SceneKey, delayMs = 16): void {
-    const scenePlugin = this.scene;
-    window.setTimeout(() => {
-      scenePlugin.start(key);
-    }, delayMs);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const manager = (this.game.scene as any);
+    const fromKey = this.scene.key;
+    // Direct SceneManager.switch() call (sleep current → start target).
+    // Must be called outside processQueue: SceneManager.start() silently
+    // fails when invoked from within the same processQueue cycle as stop().
+    window.setTimeout(() => { manager.switch(fromKey, key); }, delayMs);
   }
 
   private deferSceneStart(key: SceneKey, delayMs = 16): void {
@@ -961,7 +968,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private tryCompleteWave(): void {
-    if (!this.waveDirector.doneSpawning || this.enemiesAlive > 0) return;
+    // Use group's authoritative count to guard against enemiesAlive counter drift.
+    const liveCount = this.enemies.countActive(true);
+    this.enemiesAlive = liveCount;
+    if (!this.waveDirector.doneSpawning || liveCount > 0) return;
 
     if (this.bossSprite?.active) return;
     if (this.bossSpawnPending) return;
@@ -1083,6 +1093,13 @@ export class GameScene extends Phaser.Scene {
     this.waveDirector.trySpawn(time, (typ: WaveEnemyType) => {
       this.spawnEnemy(typ);
     });
+
+    // Periodic safety-net: catches the case where doneSpawning flips to true on the
+    // same frame as the last enemy dies (event already fired before spawn advanced).
+    if (time >= this.waveCompleteCheckAt) {
+      this.waveCompleteCheckAt = time + 500;
+      this.tryCompleteWave();
+    }
 
     this.cullOffscreenBullets();
     this.cullOffscreenEnemyBullets();
