@@ -131,11 +131,10 @@ export class ResultScene extends Phaser.Scene {
       }
       runState.currentStageIndex += 1;
       const nextKey = runState.currentStageIndex > 5 ? SceneKeys.MVPClear : SceneKeys.Game;
-      // Defer past this timer callback / input so ScenePlugin is in a stable state.
-      this.time.delayedCall(0, () => {
-        if (!this.scene.isActive(SceneKeys.Result)) return;
-        this.scene.start(nextKey);
-      });
+      // Use native setTimeout to bypass Phaser scene-status guards entirely.
+      // delayedCall(0,...) fires on the next Phaser frame when status may no
+      // longer be RUNNING, causing scene.start() to silently no-op.
+      window.setTimeout(() => { this.scene.start(nextKey); }, 0);
     };
 
     const goTitle = (): void => {
@@ -143,10 +142,7 @@ export class ResultScene extends Phaser.Scene {
       navigated = true;
       cancelTimers();
       void ensureAudioUnlocked();
-      this.time.delayedCall(0, () => {
-        if (!this.scene.isActive(SceneKeys.Result)) return;
-        this.scene.start(SceneKeys.Title);
-      });
+      window.setTimeout(() => { this.scene.start(SceneKeys.Title); }, 0);
     };
 
     autoTimer = this.time.delayedCall(autoContinueSec * 1000, advanceToNextStage);
