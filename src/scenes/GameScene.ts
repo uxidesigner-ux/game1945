@@ -156,6 +156,8 @@ export class GameScene extends Phaser.Scene {
     // Fresh stage run (boss flags survive on the scene instance if shutdown order ever skips cleanup).
     this.bossRoundScheduled = false;
     this.bossSpawnPending = false;
+    this.comboKills = 0;
+    this.comboLastKillTime = 0;
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x0d1520, 1).setDepth(0);
 
@@ -304,6 +306,8 @@ export class GameScene extends Phaser.Scene {
       this.hud = undefined;
       this.waveHint?.destroy();
       this.waveHint = undefined;
+      this.comboLabel?.destroy();
+      this.comboLabel = undefined;
       this.bossRoundScheduled = false;
       this.bossSpawnPending = false;
     });

@@ -34,7 +34,7 @@ export class TitleScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.38, 'Vertical action — original work', {
+      .text(width / 2, height * 0.38, 'Vertical action  ·  5 Stages  ·  5 Bosses', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '18px',
         color: '#8fb8d9',
