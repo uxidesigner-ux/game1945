@@ -5,6 +5,15 @@ import { loadHighScore, recordHighScoreIfBest } from '../core/highScore';
 import { runState } from '../core/RunState';
 import { SceneKeys } from './sceneKeys';
 
+function safeRemoveTimer(t: Phaser.Time.TimerEvent | undefined): void {
+  if (!t) return;
+  try {
+    t.destroy();
+  } catch {
+    /* already removed */
+  }
+}
+
 export class ResultScene extends Phaser.Scene {
   constructor() {
     super(SceneKeys.Result);
@@ -87,38 +96,41 @@ export class ResultScene extends Phaser.Scene {
     let tickTimer: Phaser.Time.TimerEvent | undefined;
     let navigated = false;
 
-    const cancelAutoContinue = (): void => {
-      tickTimer?.destroy();
+    const cancelTimers = (): void => {
+      safeRemoveTimer(tickTimer);
       tickTimer = undefined;
-      autoTimer?.destroy();
+      safeRemoveTimer(autoTimer);
       autoTimer = undefined;
       autoLine.setVisible(false);
     };
 
-    const goNext = (): void => {
+    const advanceToNextStage = (): void => {
       if (navigated) return;
       navigated = true;
-      cancelAutoContinue();
+      cancelTimers();
       void ensureAudioUnlocked();
       runState.currentStageIndex += 1;
-      if (runState.currentStageIndex > 2) {
-        this.scene.start(SceneKeys.MVPClear);
-      } else {
-        this.scene.start(SceneKeys.Game);
-      }
+      const nextKey = runState.currentStageIndex > 2 ? SceneKeys.MVPClear : SceneKeys.Game;
+      // Defer past this timer callback / input so ScenePlugin is in a stable state.
+      this.time.delayedCall(0, () => {
+        if (!this.scene.isActive(SceneKeys.Result)) return;
+        this.scene.start(nextKey);
+      });
     };
 
     const goTitle = (): void => {
       if (navigated) return;
       navigated = true;
-      cancelAutoContinue();
+      cancelTimers();
       void ensureAudioUnlocked();
-      this.scene.start(SceneKeys.Title);
+      this.time.delayedCall(0, () => {
+        if (!this.scene.isActive(SceneKeys.Result)) return;
+        this.scene.start(SceneKeys.Title);
+      });
     };
 
-    autoTimer = this.time.delayedCall(autoContinueSec * 1000, goNext);
+    autoTimer = this.time.delayedCall(autoContinueSec * 1000, advanceToNextStage);
 
-    // repeat = (n - 2): n−1 ticks ending at "1s" before delayedCall fires (avoids racing the last tick at t=n).
     const tickRepeats = Math.max(0, autoContinueSec - 2);
     if (tickRepeats > 0) {
       tickTimer = this.time.addEvent({
@@ -162,16 +174,10 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    const wireNext = (): void => {
-      goNext();
-    };
-    const wireTitle = (): void => {
-      goTitle();
-    };
-    nextBg.on('pointerdown', wireNext);
-    nextTxt.on('pointerdown', wireNext);
-    titleBg.on('pointerdown', wireTitle);
-    titleTxt.on('pointerdown', wireTitle);
+    nextBg.on('pointerdown', advanceToNextStage);
+    nextTxt.on('pointerdown', advanceToNextStage);
+    titleBg.on('pointerdown', goTitle);
+    titleTxt.on('pointerdown', goTitle);
 
     let enterKey: Phaser.Input.Keyboard.Key | undefined;
     let spaceKey: Phaser.Input.Keyboard.Key | undefined;
@@ -181,13 +187,16 @@ export class ResultScene extends Phaser.Scene {
       enterKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
       spaceKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
       tKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.T);
-      enterKey.once('down', goNext);
-      spaceKey.once('down', goNext);
+      enterKey.once('down', advanceToNextStage);
+      spaceKey.once('down', advanceToNextStage);
       tKey.once('down', goTitle);
     }
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      cancelAutoContinue();
+      safeRemoveTimer(tickTimer);
+      tickTimer = undefined;
+      safeRemoveTimer(autoTimer);
+      autoTimer = undefined;
       enterKey?.destroy();
       spaceKey?.destroy();
       tKey?.destroy();

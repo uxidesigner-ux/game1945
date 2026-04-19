@@ -150,7 +150,6 @@ export class GameScene extends Phaser.Scene {
     // Fresh stage run (boss flags survive on the scene instance if shutdown order ever skips cleanup).
     this.bossRoundScheduled = false;
     this.bossSpawnPending = false;
-    this.teardownBoss();
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x0d1520, 1).setDepth(0);
 
@@ -707,9 +706,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Avoid starting a new scene inside Arcade overlap callbacks (next frame). */
+  /**
+   * Never call `scene.start` from inside Arcade overlap/collision — it can leave the sim half-torn.
+   * Wait until after this frame's step; `delayedCall(0)` still runs in the same physics frame on some builds.
+   */
   private deferSceneStart(key: SceneKey): void {
-    this.time.delayedCall(0, () => {
+    this.time.delayedCall(16, () => {
+      if (!this.scene.isActive(SceneKeys.Game)) return;
       this.scene.start(key);
     });
   }
