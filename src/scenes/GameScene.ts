@@ -89,6 +89,9 @@ export class GameScene extends Phaser.Scene {
   private readonly COMBO_WINDOW_MS = 2800;
   private comboLabel?: Phaser.GameObjects.Text;
 
+  /** Locks out further scene transitions once one is queued (prevents race conditions). */
+  private sceneTransitioning = false;
+
   /** First finger on playfield (touch only); second finger ignored until release. */
   private touchSteerPointerId: number | null = null;
   private touchTargetX = 0;
@@ -156,6 +159,7 @@ export class GameScene extends Phaser.Scene {
     // Fresh stage run (boss flags survive on the scene instance if shutdown order ever skips cleanup).
     this.bossRoundScheduled = false;
     this.bossSpawnPending = false;
+    this.sceneTransitioning = false;
     this.comboKills = 0;
     this.comboLastKillTime = 0;
 
@@ -521,6 +525,7 @@ export class GameScene extends Phaser.Scene {
   private onPlayerRamBoss(): void {
     const p = this.player;
     if (!p || !this.bossSprite?.active) return;
+    if (this.sceneTransitioning) return;
     if (!p.tryBeginHit(this.time.now)) return;
     this.applyPlayerHitFeedback();
     runState.lives -= 1;
@@ -545,7 +550,49 @@ export class GameScene extends Phaser.Scene {
     this.rollPickupsOnKill(x, y);
     void SFX.bossDefeated();
     this.teardownBoss();
-    this.deferSceneStart(SceneKeys.Result);
+    this.clearEnemyBullets();
+    this.showStageClear();
+    this.deferSceneStart(SceneKeys.Result, 2200);
+  }
+
+  private showStageClear(): void {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const stage = getStageByIndex(runState.currentStageIndex);
+
+    const dimmer = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0).setDepth(500);
+    const heading = this.add
+      .text(w / 2, h * 0.38, 'STAGE CLEAR!', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '44px',
+        color: '#ffd700',
+        stroke: '#000000',
+        strokeThickness: 5,
+      })
+      .setOrigin(0.5).setDepth(501).setAlpha(0);
+    const sub = this.add
+      .text(w / 2, h * 0.47, stage?.displayName ?? '', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '20px',
+        color: '#a8e6a3',
+      })
+      .setOrigin(0.5).setDepth(501).setAlpha(0);
+    const scoreRow = this.add
+      .text(w / 2, h * 0.54, `Score  ${runState.score.toLocaleString()}`, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '22px',
+        color: '#e8f4ff',
+      })
+      .setOrigin(0.5).setDepth(501).setAlpha(0);
+
+    this.tweens.add({ targets: dimmer, alpha: 0.6, duration: 300, ease: 'Cubic.Out' });
+    this.tweens.add({
+      targets: [heading, sub, scoreRow],
+      alpha: 1,
+      duration: 500,
+      delay: 150,
+      ease: 'Cubic.Out',
+    });
   }
 
   private updateBoss(time: number): void {
@@ -720,8 +767,10 @@ export class GameScene extends Phaser.Scene {
    * Never call `scene.start` from inside Arcade overlap/collision — it can leave the sim half-torn.
    * Wait until after this frame's step; `delayedCall(0)` still runs in the same physics frame on some builds.
    */
-  private deferSceneStart(key: SceneKey): void {
-    this.time.delayedCall(16, () => {
+  private deferSceneStart(key: SceneKey, delayMs = 16): void {
+    if (this.sceneTransitioning) return;
+    this.sceneTransitioning = true;
+    this.time.delayedCall(delayMs, () => {
       if (!this.scene.isActive(SceneKeys.Game)) return;
       this.scene.start(key);
     });
@@ -769,6 +818,7 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     if (!p || !bullet.active) return;
     bullet.destroy();
+    if (this.sceneTransitioning) return;
     if (!p.tryBeginHit(this.time.now)) return;
     this.applyPlayerHitFeedback();
     runState.lives -= 1;
@@ -862,6 +912,7 @@ export class GameScene extends Phaser.Scene {
   private onPlayerRamEnemy(enemy: Phaser.Physics.Arcade.Sprite): void {
     const p = this.player;
     if (!p || !enemy.active) return;
+    if (this.sceneTransitioning) return;
     if (!p.tryBeginHit(this.time.now)) return;
     this.applyPlayerHitFeedback();
     this.removeEnemy(enemy, false);
