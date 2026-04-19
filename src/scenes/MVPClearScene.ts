@@ -16,7 +16,7 @@ export class MVPClearScene extends Phaser.Scene {
 
     const prevBest = loadHighScore();
     recordHighScoreIfBest(runState.score);
-    submitRunToLeaderboard(runState.score, runState.difficulty);
+    submitRunToLeaderboard(runState.score, runState.difficulty, runState.currentStageIndex - 1);
     const newRecord = runState.score > prevBest;
 
     void SFX.demoClear();

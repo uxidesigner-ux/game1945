@@ -1,11 +1,7 @@
 import Phaser from 'phaser';
 import { ensureAudioUnlocked } from '../audio/proceduralSfx';
 import { loadHighScore } from '../core/highScore';
-import {
-  formatLeaderboardDifficultyLine,
-  formatLeaderboardShortDate,
-  loadLeaderboard,
-} from '../core/leaderboard';
+import { formatLeaderboardRow, loadLeaderboard } from '../core/leaderboard';
 import { prefersReducedMotion } from '../core/motionPreference';
 import { runState } from '../core/RunState';
 import {
@@ -51,23 +47,18 @@ export class TitleScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.49, 'TOP RUNS (this device)', {
+      .text(width / 2, height * 0.49, '— TOP RUNS  (this device) —', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '13px',
-        color: '#6a8aad',
+        color: '#4a6a8a',
       })
       .setOrigin(0.5);
 
     const board = loadLeaderboard();
     const boardBody =
       board.length === 0
-        ? 'No ranked runs yet — reach game over or demo complete.'
-        : board
-            .map(
-              (e, i) =>
-                `${i + 1}. ${e.score.toLocaleString()} · ${formatLeaderboardDifficultyLine(e)} · ${formatLeaderboardShortDate(e.at)}`,
-            )
-            .join('\n');
+        ? 'No ranked runs yet.\nPlay and reach game over or ALL CLEAR!'
+        : board.map((e, i) => `${i + 1}.  ${formatLeaderboardRow(e)}`).join('\n');
     this.add
       .text(width / 2, height * 0.515, boardBody, {
         fontFamily: 'system-ui, sans-serif',
