@@ -530,7 +530,7 @@ export class GameScene extends Phaser.Scene {
     this.applyPlayerHitFeedback();
     runState.lives -= 1;
     if (runState.lives <= 0) {
-      this.deferSceneStart(SceneKeys.GameOver);
+      this.triggerGameOver();
     }
   }
 
@@ -765,15 +765,49 @@ export class GameScene extends Phaser.Scene {
 
   /**
    * Never call `scene.start` from inside Arcade overlap/collision — it can leave the sim half-torn.
-   * Wait until after this frame's step; `delayedCall(0)` still runs in the same physics frame on some builds.
+   * Uses window.setTimeout to bypass Phaser scene-status guards that can silently block the transition.
    */
   private deferSceneStart(key: SceneKey, delayMs = 16): void {
     if (this.sceneTransitioning) return;
     this.sceneTransitioning = true;
-    this.time.delayedCall(delayMs, () => {
-      if (!this.scene.isActive(SceneKeys.Game)) return;
-      this.scene.start(key);
+    window.setTimeout(() => { this.scene.start(key); }, delayMs);
+  }
+
+  private triggerGameOver(): void {
+    if (this.sceneTransitioning) return;
+    this.sceneTransitioning = true;
+
+    // Fade out player sprite
+    const p = this.player?.sprite;
+    if (p?.active) {
+      this.tweens.add({ targets: p, alpha: 0, duration: 500, ease: 'Cubic.In' });
+    }
+
+    // Freeze enemy bullets so the screen feels paused
+    this.enemyBullets.children.each((ch) => {
+      const s = ch as Phaser.Physics.Arcade.Sprite;
+      if (s?.active) s.setVelocity(0, 0);
+      return true;
     });
+
+    // GAME OVER overlay
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const dimmer = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0).setDepth(500);
+    const goText = this.add
+      .text(w / 2, h / 2, 'GAME OVER', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '48px',
+        color: '#ff6b6b',
+        stroke: '#000000',
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5).setDepth(501).setAlpha(0);
+
+    this.tweens.add({ targets: dimmer, alpha: 0.60, duration: 320, ease: 'Cubic.Out' });
+    this.tweens.add({ targets: goText, alpha: 1, duration: 400, delay: 120, ease: 'Cubic.Out' });
+
+    window.setTimeout(() => { this.scene.start(SceneKeys.GameOver); }, 900);
   }
 
   private rollPickupsOnKill(x: number, y: number): void {
@@ -823,7 +857,7 @@ export class GameScene extends Phaser.Scene {
     this.applyPlayerHitFeedback();
     runState.lives -= 1;
     if (runState.lives <= 0) {
-      this.deferSceneStart(SceneKeys.GameOver);
+      this.triggerGameOver();
     }
   }
 
@@ -918,7 +952,7 @@ export class GameScene extends Phaser.Scene {
     this.removeEnemy(enemy, false);
     runState.lives -= 1;
     if (runState.lives <= 0) {
-      this.deferSceneStart(SceneKeys.GameOver);
+      this.triggerGameOver();
       return;
     }
   }
