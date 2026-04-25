@@ -3,7 +3,9 @@ import { ensureAudioUnlocked, SFX } from '../audio/proceduralSfx';
 import { formatTimeMs } from '../core/formatTime';
 import { loadHighScore, recordHighScoreIfBest } from '../core/highScore';
 import { submitRunToLeaderboard } from '../core/leaderboard';
+import { clearRunCheckpoint } from '../core/runCheckpoint';
 import { runState } from '../core/RunState';
+import { startSceneAfterFrame } from '../core/sceneTransition';
 import { SceneKeys } from './sceneKeys';
 
 export class MVPClearScene extends Phaser.Scene {
@@ -13,6 +15,7 @@ export class MVPClearScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+    clearRunCheckpoint();
 
     const prevBest = loadHighScore();
     recordHighScoreIfBest(runState.score);
@@ -75,16 +78,12 @@ export class MVPClearScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const go = (key: string): void => {
-      const manager = (this.game.scene as any);
-      const fromKey = this.scene.key;
-      window.setTimeout(() => {
-        manager.stop(fromKey);
-        manager.start(key);
-      }, 0);
+    const toTitle = (): void => {
+      startSceneAfterFrame(this, SceneKeys.Title);
     };
-    const toTitle = (): void => { go(SceneKeys.Title); };
-    const toSelect = (): void => { go(SceneKeys.ShipSelect); };
+    const toSelect = (): void => {
+      startSceneAfterFrame(this, SceneKeys.ShipSelect);
+    };
 
     const btnY = height * 0.8;
     const bw = 188;

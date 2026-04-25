@@ -7,6 +7,8 @@ import {
   submitRunToLeaderboard,
 } from '../core/leaderboard';
 import { runState } from '../core/RunState';
+import { clearRunCheckpoint, writeRunSnapshot } from '../core/runCheckpoint';
+import { startSceneAfterFrame } from '../core/sceneTransition';
 import { getStageByIndex } from '../data/stages';
 import { SceneKeys } from './sceneKeys';
 
@@ -149,28 +151,21 @@ export class GameOverScene extends Phaser.Scene {
     kb?.once('keydown-ENTER', () => { void ensureAudioUnlocked(); this.doContinue(); });
   }
 
-  private go(key: string): void {
-    const manager = (this.game.scene as any);
-    const fromKey = this.scene.key;
-    window.setTimeout(() => {
-      manager.stop(fromKey);
-      manager.start(key);
-    }, 0);
-  }
-
   private doContinue(): void {
     // Resume same stage: restore lives & bombs, keep score/power/stage
     runState.lives = 2;
     runState.bombs = 2;
-    this.go(SceneKeys.Game);
+    writeRunSnapshot(runState.toSnapshot());
+    startSceneAfterFrame(this, SceneKeys.Game);
   }
 
   private doRetry(): void {
     runState.resetForNewRun(runState.selectedShipId);
-    this.go(SceneKeys.ShipSelect);
+    startSceneAfterFrame(this, SceneKeys.ShipSelect);
   }
 
   private doLobby(): void {
-    this.go(SceneKeys.Title);
+    clearRunCheckpoint();
+    startSceneAfterFrame(this, SceneKeys.Title);
   }
 }

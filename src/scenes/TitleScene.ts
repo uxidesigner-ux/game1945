@@ -3,7 +3,9 @@ import { ensureAudioUnlocked } from '../audio/proceduralSfx';
 import { loadHighScore } from '../core/highScore';
 import { formatLeaderboardRow, loadLeaderboard } from '../core/leaderboard';
 import { prefersReducedMotion } from '../core/motionPreference';
+import { readRunSnapshot } from '../core/runCheckpoint';
 import { runState } from '../core/RunState';
+import { startSceneAfterFrame } from '../core/sceneTransition';
 import {
   difficultyDisplay,
   loadDifficultyFromStorage,
@@ -79,9 +81,13 @@ export class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    const saved = readRunSnapshot();
+    const canContinue = saved !== null;
+
     const refreshHint = (): void => {
       const d = difficultyDisplay[runState.difficulty];
-      hint.setText(`ENTER or tap — Ship select\nH — Difficulty: ${d}`);
+      const cLine = canContinue ? 'C or CONTINUE — resume saved run\n' : '';
+      hint.setText(`${cLine}ENTER or NEW RUN — Ship select\nH — Difficulty: ${d}`);
     };
     refreshHint();
 
@@ -119,12 +125,69 @@ export class TitleScene extends Phaser.Scene {
     const goShipSelect = (): void => {
       this.scene.start(SceneKeys.ShipSelect);
     };
-    kb?.once('keydown-ENTER', () => {
+
+    const continueRun = (): void => {
+      if (!saved) return;
+      void ensureAudioUnlocked();
+      runState.applyFromSnapshot(saved);
+      startSceneAfterFrame(this, SceneKeys.Game);
+    };
+
+    if (canContinue) {
+      const cY = height * 0.585;
+      const cBg = this.add
+        .rectangle(width / 2, cY, 280, 50, 0x1a3d2a, 0.9)
+        .setStrokeStyle(2, 0x66cc88, 0.9)
+        .setInteractive({ useHandCursor: true });
+      cBg.on('pointerdown', () => {
+        this.game.canvas?.focus();
+        void ensureAudioUnlocked();
+        continueRun();
+      });
+      this.add
+        .text(width / 2, cY, 'CONTINUE (saved run)', {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '18px',
+          color: '#a8e6c8',
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => {
+          this.game.canvas?.focus();
+          void ensureAudioUnlocked();
+          continueRun();
+        });
+      kb?.on('keydown-C', continueRun);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+        kb?.off('keydown-C', continueRun);
+      });
+    }
+
+    const newRunY = height * 0.66;
+    const nBg = this.add
+      .rectangle(width / 2, newRunY, 280, 50, 0x1a2838, 0.9)
+      .setStrokeStyle(2, 0x5c7a92, 0.9)
+      .setInteractive({ useHandCursor: true });
+    nBg.on('pointerdown', () => {
+      this.game.canvas?.focus();
       void ensureAudioUnlocked();
       goShipSelect();
     });
-    this.input.once('pointerdown', () => {
-      this.game.canvas?.focus();
+    this.add
+      .text(width / 2, newRunY, 'NEW RUN (ship select)', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '18px',
+        color: '#cfe9ff',
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.game.canvas?.focus();
+        void ensureAudioUnlocked();
+        goShipSelect();
+      });
+
+    kb?.once('keydown-ENTER', () => {
       void ensureAudioUnlocked();
       goShipSelect();
     });

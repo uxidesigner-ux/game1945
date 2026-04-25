@@ -3,6 +3,8 @@ import { ensureAudioUnlocked, SFX } from '../audio/proceduralSfx';
 import { formatTimeMs } from '../core/formatTime';
 import { loadHighScore, recordHighScoreIfBest } from '../core/highScore';
 import { runState } from '../core/RunState';
+import { clearRunCheckpoint, writeRunSnapshot } from '../core/runCheckpoint';
+import { startSceneAfterFrame } from '../core/sceneTransition';
 import { SceneKeys } from './sceneKeys';
 
 function safeRemoveTimer(t: Phaser.Time.TimerEvent | undefined): void {
@@ -88,7 +90,7 @@ export class ResultScene extends Phaser.Scene {
     const autoContinueSec = 5;
     let autoSecondsLeft = autoContinueSec;
     const autoLine = this.add
-      .text(width / 2, height * 0.725, `Next stage in ${autoSecondsLeft}s (ENTER / SPACE / NEXT to skip)`, {
+      .text(width / 2, height * 0.725, `Next stage in ${autoSecondsLeft}s (ENTER / SPACE to continue)`, {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '16px',
         color: '#9ec8e8',
@@ -98,7 +100,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height * 0.77, 'T — title · tap buttons', {
+      .text(width / 2, height * 0.77, 'T — title (abandons run) · tap buttons', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '17px',
         color: '#7aa6c8',
@@ -119,15 +121,6 @@ export class ResultScene extends Phaser.Scene {
       autoLine.setVisible(false);
     };
 
-    const go = (key: string): void => {
-      const manager = (this.game.scene as any);
-      const fromKey = this.scene.key;
-      window.setTimeout(() => {
-        manager.stop(fromKey);
-        manager.start(key);
-      }, 0);
-    };
-
     const advanceToNextStage = (): void => {
       if (navigated) return;
       navigated = true;
@@ -140,7 +133,12 @@ export class ResultScene extends Phaser.Scene {
       }
       runState.currentStageIndex += 1;
       const nextKey = runState.currentStageIndex > 5 ? SceneKeys.MVPClear : SceneKeys.Game;
-      go(nextKey);
+      if (nextKey === SceneKeys.Game) {
+        writeRunSnapshot(runState.toSnapshot());
+      } else {
+        clearRunCheckpoint();
+      }
+      startSceneAfterFrame(this, nextKey);
     };
 
     const goTitle = (): void => {
@@ -148,7 +146,8 @@ export class ResultScene extends Phaser.Scene {
       navigated = true;
       cancelTimers();
       void ensureAudioUnlocked();
-      go(SceneKeys.Title);
+      clearRunCheckpoint();
+      startSceneAfterFrame(this, SceneKeys.Title);
     };
 
     autoTimer = this.time.delayedCall(autoContinueSec * 1000, advanceToNextStage);
@@ -161,7 +160,7 @@ export class ResultScene extends Phaser.Scene {
         callback: () => {
           autoSecondsLeft -= 1;
           if (autoSecondsLeft >= 1) {
-            autoLine.setText(`Next stage in ${autoSecondsLeft}s (ENTER / SPACE / NEXT to skip)`);
+            autoLine.setText(`Next stage in ${autoSecondsLeft}s (ENTER / SPACE to continue)`);
           }
         },
       });
@@ -175,9 +174,9 @@ export class ResultScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x5c7a92, 0.95)
       .setInteractive({ useHandCursor: true });
     const nextTxt = this.add
-      .text(width * 0.3, btnY, 'NEXT', {
+      .text(width * 0.3, btnY, 'CONTINUE', {
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '20px',
+        fontSize: '18px',
         color: '#cfe9ff',
       })
       .setOrigin(0.5)

@@ -1,3 +1,4 @@
+import { clearRunCheckpoint, type RunSnapshot } from './runCheckpoint';
 import type { DifficultyId } from '../data/difficulty';
 import type { ShipId } from '../data/ships/types';
 
@@ -20,7 +21,35 @@ export class RunState {
   /** Cumulative ms in gameplay this run (all GameScene time, excl. pause). */
   runElapsedMs = 0;
 
+  toSnapshot(): RunSnapshot {
+    return {
+      difficulty: this.difficulty,
+      lives: this.lives,
+      bombs: this.bombs,
+      score: this.score,
+      charge01: this.charge01,
+      powerLevel: this.powerLevel,
+      selectedShipId: this.selectedShipId,
+      currentStageIndex: this.currentStageIndex,
+      runElapsedMs: this.runElapsedMs,
+    };
+  }
+
+  applyFromSnapshot(s: RunSnapshot): void {
+    this.difficulty = s.difficulty;
+    this.lives = s.lives;
+    this.bombs = s.bombs;
+    this.score = s.score;
+    this.charge01 = s.charge01;
+    this.powerLevel = s.powerLevel;
+    this.selectedShipId = s.selectedShipId;
+    this.currentStageIndex = s.currentStageIndex;
+    this.stageElapsedMs = 0;
+    this.runElapsedMs = s.runElapsedMs;
+  }
+
   resetForNewRun(shipId: ShipId): void {
+    clearRunCheckpoint();
     this.lives = 3;
     this.bombs = 2;
     this.score = 0;
